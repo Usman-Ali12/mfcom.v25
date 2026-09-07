@@ -8,11 +8,13 @@ import { Heart, ShoppingCart, Menu, X, ChevronRight } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
 import ThemeToggle from "@/components/storefront/ThemeToggle";
-import TrackOrderQuickEntry from "@/components/storefront/TrackOrderQuickEntry";
 import SearchBox from "@/components/storefront/SearchBox";
 
 export default function Header({
-  whatsappDisplay,
+  // Unused for now — was feeding the announcement bar, which is parked
+  // (see note below). Left in the signature since the layout already
+  // passes it and it's the natural hook if a promo bar comes back.
+  whatsappDisplay: _whatsappDisplay,
   categoryGroups,
 }: {
   whatsappDisplay: string;
@@ -53,15 +55,6 @@ export default function Header({
 
   return (
     <>
-      <div className="bg-void text-paper/70 text-xs mono-label py-2 px-4 flex items-center justify-center gap-4 relative">
-        <span className="text-center">
-          Free delivery in Karachi on orders over Rs. 15,000 · Naz Plaza, M.A. Jinnah Road · Call {whatsappDisplay}
-        </span>
-        <span className="absolute right-4 hidden lg:block">
-          <TrackOrderQuickEntry />
-        </span>
-      </div>
-
       <header className="sticky top-0 z-50 bg-void text-paper border-b border-white/10">
         <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
           <div className="flex h-[76px] items-center gap-6">
@@ -77,7 +70,7 @@ export default function Header({
             {/* Logo */}
             <Link href="/" className="shrink-0 flex items-center" aria-label="MF COM home">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo-on-dark.png" alt="MF COM" className="h-10 w-auto" />
+              <img src="/logo-on-dark.png" alt="MF COM" className="h-14 w-auto" />
             </Link>
 
             {/* Categories trigger (desktop) */}
