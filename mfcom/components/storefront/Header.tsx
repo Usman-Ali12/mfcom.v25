@@ -40,14 +40,24 @@ export default function Header({
 
   return (
     <>
-      <div className="bg-void text-paper/70 text-xs mono-label py-2 px-4 flex items-center justify-center gap-4 relative">
-        <span className="text-center">
+      <motion.div
+        initial={{ y: -24, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="bg-void text-paper/60 text-[10px] sm:text-xs mono-label py-1.5 sm:py-2 px-4 flex items-center justify-center gap-4 relative border-b border-white/5 overflow-hidden"
+      >
+        {/* Mobile: single short line, no clutter */}
+        <span className="text-center truncate sm:hidden">
+          Free delivery on orders over Rs. 15,000
+        </span>
+        {/* Desktop: full detail */}
+        <span className="hidden sm:inline text-center">
           Free delivery in Karachi on orders over Rs. 15,000 · Naz Plaza, M.A. Jinnah Road · Call {whatsappDisplay}
         </span>
         <span className="absolute right-4 hidden lg:block">
           <TrackOrderQuickEntry />
         </span>
-      </div>
+      </motion.div>
 
       <header className="sticky top-0 z-50 bg-void text-paper border-b border-white/10">
         <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
@@ -61,10 +71,16 @@ export default function Header({
               {mobileOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
 
-            {/* Logo */}
+            {/* Logo — larger and dominant on mobile, since the header is the
+                first brand impression; scales back slightly on desktop where
+                it sits alongside categories/search. */}
             <Link href="/" className="shrink-0 flex items-center" aria-label="MF COM home">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo-on-dark.png" alt="MF COM" className="h-10 w-auto" />
+              <motion.img
+                whileTap={{ scale: 0.96 }}
+                src="/logo-on-dark.png"
+                alt="MF COM"
+                className="h-12 sm:h-11 lg:h-10 w-auto"
+              />
             </Link>
 
             {/* Categories trigger (desktop) */}
