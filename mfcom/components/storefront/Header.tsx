@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { Heart, ShoppingCart, User, Menu, X, ChevronRight } from "lucide-react";
+import { Heart, ShoppingCart, Menu, X, ChevronRight } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
 import ThemeToggle from "@/components/storefront/ThemeToggle";
@@ -38,26 +38,29 @@ export default function Header({
     prevCount.current = count;
   }, [count]);
 
+  // Same bump for wishlist — its only home now is a small icon buried in the
+  // desktop row, so the add needs to register just as clearly as cart does.
+  const [wishlistBump, setWishlistBump] = useState(false);
+  const prevWishlistCount = useRef(wishlistCount);
+  useEffect(() => {
+    if (wishlistCount > prevWishlistCount.current) {
+      setWishlistBump(true);
+      const t = setTimeout(() => setWishlistBump(false), 400);
+      return () => clearTimeout(t);
+    }
+    prevWishlistCount.current = wishlistCount;
+  }, [wishlistCount]);
+
   return (
     <>
-      <motion.div
-        initial={{ y: -24, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-        className="bg-void text-paper/60 text-[10px] sm:text-xs mono-label py-1.5 sm:py-2 px-4 flex items-center justify-center gap-4 relative border-b border-white/5 overflow-hidden"
-      >
-        {/* Mobile: single short line, no clutter */}
-        <span className="text-center truncate sm:hidden">
-          Free delivery on orders over Rs. 15,000
-        </span>
-        {/* Desktop: full detail */}
-        <span className="hidden sm:inline text-center">
+      <div className="bg-void text-paper/70 text-xs mono-label py-2 px-4 flex items-center justify-center gap-4 relative">
+        <span className="text-center">
           Free delivery in Karachi on orders over Rs. 15,000 · Naz Plaza, M.A. Jinnah Road · Call {whatsappDisplay}
         </span>
         <span className="absolute right-4 hidden lg:block">
           <TrackOrderQuickEntry />
         </span>
-      </motion.div>
+      </div>
 
       <header className="sticky top-0 z-50 bg-void text-paper border-b border-white/10">
         <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
@@ -71,16 +74,10 @@ export default function Header({
               {mobileOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
 
-            {/* Logo — larger and dominant on mobile, since the header is the
-                first brand impression; scales back slightly on desktop where
-                it sits alongside categories/search. */}
+            {/* Logo */}
             <Link href="/" className="shrink-0 flex items-center" aria-label="MF COM home">
-              <motion.img
-                whileTap={{ scale: 0.96 }}
-                src="/logo-on-dark.png"
-                alt="MF COM"
-                className="h-12 sm:h-11 lg:h-10 w-auto"
-              />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo-on-dark.png" alt="MF COM" className="h-10 w-auto" />
             </Link>
 
             {/* Categories trigger (desktop) */}
@@ -137,11 +134,14 @@ export default function Header({
 
             <div className="flex items-center gap-1 ml-auto">
               <ThemeToggle />
-              <Link href="/account" className="p-2.5 hover:text-red transition-colors" aria-label="Account">
-                <User size={20} />
-              </Link>
-              <Link href="/wishlist" className="p-2.5 hover:text-red transition-colors relative" aria-label="Wishlist">
-                <Heart size={20} />
+              <Link
+                href="/wishlist"
+                className="hidden lg:flex p-2.5 hover:text-red transition-colors relative items-center justify-center"
+                aria-label="Wishlist"
+              >
+                <motion.div animate={wishlistBump ? { scale: [1, 1.35, 1] } : {}} transition={{ duration: 0.4, ease: "easeOut" }}>
+                  <Heart size={20} />
+                </motion.div>
                 {wishlistCount > 0 && (
                   <span className="absolute top-1 right-1 bg-red text-[10px] leading-none w-4 h-4 rounded-full flex items-center justify-center font-semibold">
                     {wishlistCount}
@@ -183,6 +183,22 @@ export default function Header({
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-40 bg-void text-paper overflow-y-auto thin-scroll pt-[76px]">
           <div className="p-6 space-y-8">
+            <Link
+              href="/wishlist"
+              className="flex items-center justify-between text-base py-1"
+              onClick={() => setMobileOpen(false)}
+            >
+              <span className="flex items-center gap-3">
+                <Heart size={18} />
+                Wishlist
+              </span>
+              {wishlistCount > 0 && (
+                <span className="bg-red text-[10px] leading-none w-4 h-4 rounded-full flex items-center justify-center font-semibold">
+                  {wishlistCount}
+                </span>
+              )}
+            </Link>
+
             {categoryGroups.map((group) => (
               <div key={group.group}>
                 <p className="mono-label text-[11px] text-red mb-3">{group.group}</p>
