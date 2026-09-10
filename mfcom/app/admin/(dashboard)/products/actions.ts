@@ -69,6 +69,7 @@ async function readProductForm(formData: FormData): Promise<Omit<Product, "id">>
     specifications,
     warranty: String(formData.get("warranty") || "1-year manufacturer warranty"),
     badge: (formData.get("badge") as Product["badge"]) || undefined,
+    condition: (formData.get("condition") as Product["condition"]) || "new",
   };
 }
 

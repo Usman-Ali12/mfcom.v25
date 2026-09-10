@@ -36,6 +36,7 @@ type ProductRow = {
   specifications: { label: string; value: string }[];
   warranty: string | null;
   badge: string | null;
+  condition: Product["condition"];
 };
 
 function rowToProduct(row: ProductRow): Product {
@@ -60,6 +61,7 @@ function rowToProduct(row: ProductRow): Product {
     specifications: row.specifications ?? [],
     warranty: row.warranty ?? "",
     badge: (row.badge as Product["badge"]) ?? undefined,
+    condition: (row.condition as Product["condition"]) ?? "new",
   };
 }
 
@@ -84,6 +86,7 @@ function productToRow(input: Partial<Product>) {
   if (input.specifications !== undefined) row.specifications = input.specifications;
   if (input.warranty !== undefined) row.warranty = input.warranty;
   if (input.badge !== undefined) row.badge = input.badge ?? null;
+  if (input.condition !== undefined) row.condition = input.condition;
   return row;
 }
 

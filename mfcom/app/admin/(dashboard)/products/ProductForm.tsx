@@ -47,6 +47,7 @@ export default function ProductForm({
   const [category, setCategory] = useState(initial?.category || "");
   const [newCategoryName, setNewCategoryName] = useState("");
   const [badge, setBadge] = useState(initial?.badge || "");
+  const [condition, setCondition] = useState<Product["condition"]>(initial?.condition || "new");
   const [stock, setStock] = useState(initial?.stock || "in-stock");
   const [name, setName] = useState(initial?.name || "");
   const [shortSpec, setShortSpec] = useState(initial?.shortSpec || "");
@@ -225,6 +226,33 @@ export default function ProductForm({
                 </p>
               </>
             )}
+          </div>
+          <div>
+            <label className="text-xs font-medium block mb-1.5">Condition *</label>
+            <input type="hidden" name="condition" value={condition} required />
+            <div className="flex h-10 border border-line chamfer-sm overflow-hidden text-sm">
+              <button
+                type="button"
+                onClick={() => setCondition("new")}
+                className={`flex-1 font-medium transition-colors ${
+                  condition === "new" ? "bg-void text-white" : "bg-white text-void hover:bg-paper"
+                }`}
+              >
+                New
+              </button>
+              <button
+                type="button"
+                onClick={() => setCondition("used")}
+                className={`flex-1 font-medium transition-colors border-l border-line ${
+                  condition === "used" ? "bg-red text-white" : "bg-white text-void hover:bg-paper"
+                }`}
+              >
+                Used
+              </button>
+            </div>
+            <p className="text-xs text-steel mt-1.5">
+              Shown to customers as a badge on the product — be accurate, this is what buyers trust.
+            </p>
           </div>
           <div>
             <label className="text-xs font-medium block mb-1.5">Badge</label>

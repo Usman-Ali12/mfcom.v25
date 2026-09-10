@@ -22,8 +22,15 @@ export default function ProductGrid({
   const allCategories = categoryGroups.flatMap((g) => g.items);
   const [activeBrands, setActiveBrands] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [activeCondition, setActiveCondition] = useState<"" | "new" | "used">("");
   const [sort, setSort] = useState<Sort>("featured");
   const [filtersOpen, setFiltersOpen] = useState(false);
+
+  // Only show the condition filter at all when the current product set
+  // actually has used items — most categories are 100% new stock, and a
+  // filter with one dead option (everything already matches "New") just
+  // adds noise.
+  const hasUsedItems = useMemo(() => products.some((p) => p.condition === "used"), [products]);
 
   // Derived straight from the products on this page rather than a static
   // brand list — brands now come from the admin-managed brands table
@@ -44,12 +51,15 @@ export default function ProductGrid({
     if (activeBrands.length) {
       list = list.filter((p) => activeBrands.includes(p.brand));
     }
+    if (activeCondition) {
+      list = list.filter((p) => p.condition === activeCondition);
+    }
     const sorted = [...list];
     if (sort === "price-asc") sorted.sort((a, b) => a.price - b.price);
     if (sort === "price-desc") sorted.sort((a, b) => b.price - a.price);
     if (sort === "rating") sorted.sort((a, b) => b.rating - a.rating);
     return sorted;
-  }, [products, activeCategory, activeBrands, sort, lockedCategory]);
+  }, [products, activeCategory, activeBrands, activeCondition, sort, lockedCategory]);
 
   function toggleBrand(b: string) {
     setActiveBrands((prev) => (prev.includes(b) ? prev.filter((x) => x !== b) : [...prev, b]));
@@ -91,6 +101,32 @@ export default function ProductGrid({
                       </button>
                     </li>
                   ))}
+              </ul>
+            </div>
+          )}
+
+          {hasUsedItems && (
+            <div>
+              <p className="mono-label text-[11px] text-steel mb-3">Condition</p>
+              <ul className="space-y-2">
+                {[
+                  { value: "", label: "All" },
+                  { value: "new", label: "Brand New" },
+                  { value: "used", label: "Used" },
+                ].map((opt) => (
+                  <li key={opt.value}>
+                    <button
+                      onClick={() => setActiveCondition(opt.value as "" | "new" | "used")}
+                      className={`text-sm ${
+                        activeCondition === opt.value
+                          ? "text-red font-medium"
+                          : "text-void/70 dark:text-paper/70 hover:text-void dark:hover:text-paper"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  </li>
+                ))}
               </ul>
             </div>
           )}

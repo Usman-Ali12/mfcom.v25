@@ -73,7 +73,13 @@ export default function ProductPurchasePanel({ product, whatsappNumber }: { prod
                   activeImage === i ? "border-red" : "border-transparent"
                 }`}
               >
-                <ProductImage src={img} alt="" fill sizes="120px" className="object-cover" />
+                <ProductImage
+                  src={img}
+                  alt={`${product.name} — view ${i + 1}`}
+                  fill
+                  sizes="120px"
+                  className="object-cover"
+                />
               </button>
             ))}
           </div>
@@ -86,7 +92,16 @@ export default function ProductPurchasePanel({ product, whatsappNumber }: { prod
             image column for products with a brief description). Same
             pattern as Amazon's buy box. */}
         <div className="lg:sticky lg:top-24 lg:self-start">
-          <p className="mono-label text-xs text-steel mb-2">{product.brand}</p>
+          <div className="flex items-center gap-2 mb-2">
+            <p className="mono-label text-xs text-steel">{product.brand}</p>
+            <span
+              className={`mono-label text-[10px] px-2 py-0.5 ${
+                product.condition === "used" ? "bg-amber-600 text-white" : "bg-void text-white dark:bg-white/10 dark:text-paper"
+              }`}
+            >
+              {product.condition === "used" ? "Used" : "Brand New"}
+            </span>
+          </div>
           <h1 className="font-display text-2xl sm:text-3xl font-semibold mb-3 leading-tight dark:text-paper">
             {product.name}
           </h1>

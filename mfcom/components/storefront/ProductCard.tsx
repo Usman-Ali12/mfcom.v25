@@ -42,6 +42,11 @@ export default function ProductCard({ product }: { product: Product }) {
 
         {/* Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start">
+          {product.condition === "used" && (
+            <span className="mono-label text-[10px] bg-amber-600 text-white px-2 py-1">
+              Used
+            </span>
+          )}
           {product.badge && (
             <span className="mono-label text-[10px] bg-void text-paper px-2 py-1">
               {product.badge}

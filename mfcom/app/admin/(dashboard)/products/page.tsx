@@ -22,6 +22,18 @@ function StockBadge({ stock }: { stock: string }) {
   );
 }
 
+function ConditionBadge({ condition }: { condition: string }) {
+  return (
+    <span
+      className={`text-xs px-2 py-0.5 chamfer-sm whitespace-nowrap ${
+        condition === "used" ? "bg-amber-600/10 text-amber-700" : "bg-void/5 text-void/70"
+      }`}
+    >
+      {condition === "used" ? "Used" : "New"}
+    </span>
+  );
+}
+
 export default async function AdminProductsPage() {
   const products = await listProducts();
 
@@ -55,7 +67,10 @@ export default async function AdminProductsPage() {
             </div>
             <div className="flex items-center justify-between mb-3">
               <span className="font-mono text-sm">Rs. {p.price.toLocaleString()}</span>
-              <StockBadge stock={p.stock} />
+              <div className="flex items-center gap-1.5">
+                <ConditionBadge condition={p.condition} />
+                <StockBadge stock={p.stock} />
+              </div>
             </div>
             <div className="flex items-center gap-1 border-t border-line pt-2 -mb-1">
               <Link
@@ -85,6 +100,7 @@ export default async function AdminProductsPage() {
             <tr className="text-left text-steel bg-paper border-b border-line">
               <th className="p-4 font-normal">Product</th>
               <th className="p-4 font-normal">Category</th>
+              <th className="p-4 font-normal">Condition</th>
               <th className="p-4 font-normal">Price</th>
               <th className="p-4 font-normal">Stock</th>
               <th className="p-4 font-normal w-32">Actions</th>
@@ -104,6 +120,9 @@ export default async function AdminProductsPage() {
                   </div>
                 </td>
                 <td className="p-4 text-steel whitespace-nowrap">{p.category}</td>
+                <td className="p-4">
+                  <ConditionBadge condition={p.condition} />
+                </td>
                 <td className="p-4 font-mono whitespace-nowrap">Rs. {p.price.toLocaleString()}</td>
                 <td className="p-4">
                   <StockBadge stock={p.stock} />

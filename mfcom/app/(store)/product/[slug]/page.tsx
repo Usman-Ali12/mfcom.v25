@@ -19,7 +19,13 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   // independent fields nothing templates, so they keep the full form.
   const title = product.name;
   const fullTitle = `${product.name} — ${SITE_NAME}`;
-  const description = product.shortSpec || product.description.slice(0, 155);
+  // Full sentence description reads better in a Google snippet and does
+  // more to earn the click than the terse spec bullet ("59g · 30K DPI
+  // sensor · 90hr battery") — shortSpec is a fallback for the rare
+  // product with no description written yet, not the default.
+  const description = product.description
+    ? product.description.slice(0, 155)
+    : product.shortSpec;
   return {
     title,
     description,
@@ -70,6 +76,10 @@ export default async function ProductPage({ params }: { params: { slug: string }
       url: `${SITE_URL}/product/${product.slug}`,
       priceCurrency: product.currency,
       price: product.price,
+      itemCondition:
+        product.condition === "used"
+          ? "https://schema.org/UsedCondition"
+          : "https://schema.org/NewCondition",
       availability:
         product.stock === "out-of-stock"
           ? "https://schema.org/OutOfStock"
