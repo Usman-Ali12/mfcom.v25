@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, Check } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 
 export type SelectOption = { value: string; label: string };
 
@@ -92,34 +93,42 @@ export default function Select({
         <ChevronDown size={15} className={`text-steel shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
-      {mounted && open &&
+      {mounted &&
         createPortal(
-          <ul
-            ref={listRef}
-            role="listbox"
-            style={{ position: "absolute", top: coords.top, left: coords.left, width: coords.width }}
-            className="z-[1000] bg-white dark:bg-graphite border border-line dark:border-white/10 chamfer-sm shadow-xl py-1 max-h-64 overflow-y-auto thin-scroll"
-          >
-            {options.map((opt) => (
-              <li key={opt.value} role="option" aria-selected={opt.value === value}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onChange(opt.value);
-                    setOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-left transition-colors ${
-                    opt.value === value
-                      ? "text-red font-medium bg-red/5"
-                      : "text-void dark:text-paper/85 hover:bg-paper dark:hover:bg-white/5"
-                  }`}
-                >
-                  {opt.label}
-                  {opt.value === value && <Check size={14} />}
-                </button>
-              </li>
-            ))}
-          </ul>,
+          <AnimatePresence>
+            {open && (
+              <motion.ul
+                ref={listRef}
+                role="listbox"
+                initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
+                style={{ position: "absolute", top: coords.top, left: coords.left, width: coords.width, transformOrigin: "top" }}
+                className="z-[1000] bg-white dark:bg-graphite border border-line dark:border-white/10 chamfer-sm shadow-xl py-1 max-h-64 overflow-y-auto thin-scroll"
+              >
+                {options.map((opt) => (
+                  <li key={opt.value} role="option" aria-selected={opt.value === value}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onChange(opt.value);
+                        setOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-left transition-colors ${
+                        opt.value === value
+                          ? "text-red font-medium bg-red/5"
+                          : "text-void dark:text-paper/85 hover:bg-paper dark:hover:bg-white/5"
+                      }`}
+                    >
+                      {opt.label}
+                      {opt.value === value && <Check size={14} />}
+                    </button>
+                  </li>
+                ))}
+              </motion.ul>
+            )}
+          </AnimatePresence>,
           document.body
         )}
     </>

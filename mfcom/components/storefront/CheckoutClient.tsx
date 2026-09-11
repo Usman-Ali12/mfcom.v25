@@ -180,7 +180,7 @@ export default function CheckoutClient({
           <button
             type="submit"
             disabled={submitting}
-            className="w-full h-12 bg-red text-white text-sm font-medium chamfer hover:bg-red-dim transition-colors disabled:opacity-60"
+            className="press w-full h-12 bg-red text-white text-sm font-medium chamfer hover:bg-red-dim transition-colors disabled:opacity-60"
           >
             {submitting ? "Placing order…" : "Place order via WhatsApp"}
           </button>

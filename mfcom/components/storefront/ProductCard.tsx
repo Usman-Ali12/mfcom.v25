@@ -4,6 +4,7 @@ import Link from "next/link";
 import ProductImage from "@/components/storefront/ProductImage";
 import { Heart, Eye, Star, Check } from "lucide-react";
 import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import type { Product } from "@/lib/mock-data";
 import { formatPrice, discountPercent } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
@@ -66,7 +67,7 @@ export default function ProductCard({ product }: { product: Product }) {
           <button
             aria-label={saved ? "Remove from wishlist" : "Add to wishlist"}
             onClick={handleWishlist}
-            className={`w-9 h-9 flex items-center justify-center chamfer-sm transition-colors ${
+            className={`press w-9 h-9 flex items-center justify-center chamfer-sm transition-colors ${
               saved ? "bg-red text-white" : "bg-white/95 hover:bg-red hover:text-white"
             }`}
           >
@@ -118,7 +119,7 @@ export default function ProductCard({ product }: { product: Product }) {
         </div>
 
         <button
-          className={`w-full h-10 text-sm font-medium chamfer-sm transition-colors flex items-center justify-center gap-2 ${
+          className={`press w-full h-10 text-sm font-medium chamfer-sm transition-colors flex items-center justify-center gap-2 overflow-hidden ${
             added
               ? "bg-green-700 text-white"
               : "bg-void text-white hover:bg-red dark:bg-red dark:hover:bg-red-dim"
@@ -126,15 +127,30 @@ export default function ProductCard({ product }: { product: Product }) {
           onClick={handleAdd}
           disabled={product.stock === "out-of-stock"}
         >
-          {added ? (
-            <>
-              <Check size={15} /> Added
-            </>
-          ) : product.stock === "out-of-stock" ? (
-            "Out of Stock"
-          ) : (
-            "Add to Cart"
-          )}
+          <AnimatePresence mode="wait" initial={false}>
+            {added ? (
+              <motion.span
+                key="added"
+                initial={{ y: 10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: -10, opacity: 0 }}
+                transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                className="flex items-center gap-2"
+              >
+                <Check size={15} /> Added
+              </motion.span>
+            ) : (
+              <motion.span
+                key="idle"
+                initial={{ y: 10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: -10, opacity: 0 }}
+                transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+              >
+                {product.stock === "out-of-stock" ? "Out of Stock" : "Add to Cart"}
+              </motion.span>
+            )}
+          </AnimatePresence>
         </button>
       </div>
     </div>

@@ -76,13 +76,13 @@ export default async function HomePage() {
             <div className="flex gap-3 mb-10">
               <Link
                 href="/shop"
-                className="h-12 px-6 bg-red text-white text-sm font-medium flex items-center gap-2 chamfer hover:bg-red-dim transition-colors"
+                className="press h-12 px-6 bg-red text-white text-sm font-medium flex items-center gap-2 chamfer hover:bg-red-dim transition-colors"
               >
                 Shop now <ArrowUpRight size={16} />
               </Link>
               <Link
                 href="/deals"
-                className="h-12 px-6 border border-white/20 text-sm font-medium flex items-center chamfer hover:border-white/40 transition-colors"
+                className="press h-12 px-6 border border-white/20 text-sm font-medium flex items-center chamfer hover:border-white/40 transition-colors"
               >
                 View deals
               </Link>
@@ -128,6 +128,10 @@ export default async function HomePage() {
       </section>
 
       {/* ============ CATEGORY RAIL — Jarir pattern: browse-categories as its own rail ============ */}
+      {/* This is the one orchestrated reveal on the page — the first thing a
+          visitor scrolls into after the hero. Everything below plays it
+          straight (no repeated fade-up), so this moment isn't diluted by
+          five more identical copies of itself further down the page. */}
       <Reveal>
         <section className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8 py-14">
           <div className="flex items-baseline justify-between mb-6">
@@ -157,67 +161,61 @@ export default async function HomePage() {
 
       {/* ============ FLASH SALE — only rendered when a promotion is actually live ============ */}
       {activePromotion && dealProducts.length > 0 && (
-        <Reveal>
-          <section className="bg-void text-paper py-14">
-            <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
-              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-8">
-                <div>
-                  <p className="mono-label text-xs text-red mb-3">{activePromotion.title}</p>
-                  <h2 className="font-display text-display-md font-semibold mb-2">
-                    {activePromotion.message}
-                  </h2>
-                </div>
-                <CountdownTimer endsAt={activePromotion.endDate} />
+        <section className="bg-void text-paper py-14">
+          <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-8">
+              <div>
+                <p className="mono-label text-xs text-red mb-3">{activePromotion.title}</p>
+                <h2 className="font-display text-display-md font-semibold mb-2">
+                  {activePromotion.message}
+                </h2>
               </div>
-              <StaggerGrid className="grid grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-7">
-                {dealProducts.map((p) => (
-                  <StaggerItem key={p.id}>
-                    <ProductCard product={p} />
-                  </StaggerItem>
-                ))}
-              </StaggerGrid>
+              <CountdownTimer endsAt={activePromotion.endDate} />
             </div>
-          </section>
-        </Reveal>
+            <StaggerGrid className="grid grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-7">
+              {dealProducts.map((p) => (
+                <StaggerItem key={p.id}>
+                  <ProductCard product={p} />
+                </StaggerItem>
+              ))}
+            </StaggerGrid>
+          </div>
+        </section>
       )}
 
       {/* ============ BEST SELLERS — horizontal rail (Jarir pattern) ============ */}
-      <Reveal>
-        <section className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8 py-14">
-          <div className="flex items-baseline justify-between mb-6">
-            <h2 className="font-display text-display-md font-semibold">Best sellers</h2>
-            <Link href="/shop" className="text-sm text-red font-medium flex items-center gap-1 hover:gap-2 transition-all">
-              View all <ArrowUpRight size={14} />
-            </Link>
-          </div>
-          <Carousel>
-            {bestSellers.map((p) => (
-              <div key={p.id} data-carousel-item className="w-[220px] sm:w-[260px] shrink-0 snap-start">
-                <ProductCard product={p} />
-              </div>
-            ))}
-          </Carousel>
-        </section>
-      </Reveal>
+      <section className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8 py-14">
+        <div className="flex items-baseline justify-between mb-6">
+          <h2 className="font-display text-display-md font-semibold">Best sellers</h2>
+          <Link href="/shop" className="text-sm text-red font-medium flex items-center gap-1 hover:gap-2 transition-all">
+            View all <ArrowUpRight size={14} />
+          </Link>
+        </div>
+        <Carousel>
+          {bestSellers.map((p) => (
+            <div key={p.id} data-carousel-item className="w-[220px] sm:w-[260px] shrink-0 snap-start">
+              <ProductCard product={p} />
+            </div>
+          ))}
+        </Carousel>
+      </section>
 
       {/* ============ NEW ARRIVALS — horizontal rail ============ */}
-      <Reveal>
-        <section className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8 pb-14">
-          <div className="flex items-baseline justify-between mb-6">
-            <h2 className="font-display text-display-md font-semibold">New arrivals</h2>
-            <Link href="/shop" className="text-sm text-red font-medium flex items-center gap-1 hover:gap-2 transition-all">
-              View all <ArrowUpRight size={14} />
-            </Link>
-          </div>
-          <Carousel>
-            {newArrivals.map((p) => (
-              <div key={p.id} data-carousel-item className="w-[220px] sm:w-[260px] shrink-0 snap-start">
-                <ProductCard product={p} />
-              </div>
-            ))}
-          </Carousel>
-        </section>
-      </Reveal>
+      <section className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8 pb-14">
+        <div className="flex items-baseline justify-between mb-6">
+          <h2 className="font-display text-display-md font-semibold">New arrivals</h2>
+          <Link href="/shop" className="text-sm text-red font-medium flex items-center gap-1 hover:gap-2 transition-all">
+            View all <ArrowUpRight size={14} />
+          </Link>
+        </div>
+        <Carousel>
+          {newArrivals.map((p) => (
+            <div key={p.id} data-carousel-item className="w-[220px] sm:w-[260px] shrink-0 snap-start">
+              <ProductCard product={p} />
+            </div>
+          ))}
+        </Carousel>
+      </section>
 
       {/* ============ BRAND STRIP — real authorized partners ============ */}
       <section className="border-y border-line dark:border-white/10 bg-white dark:bg-graphite py-8">
@@ -236,26 +234,24 @@ export default async function HomePage() {
       </section>
 
       {/* ============ TRUST / SERVICE — concrete, Jarir-style specific claims ============ */}
-      <Reveal>
-        <section className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8 py-14 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[
-            { icon: Truck, title: "Fast dispatch", copy: "Same-day dispatch on orders placed before 4pm." },
-            { icon: ShieldCheck, title: "Genuine stock", copy: "Authorized dealer — full manufacturer warranty, up to 3 years on electronics." },
-            { icon: RotateCcw, title: "7-day returns", copy: "Change-of-mind returns on unopened items within 7 days." },
-            { icon: Headphones, title: "Real support", copy: "WhatsApp or call, 11am-9:30pm — a person answers, not a bot." },
-          ].map((item) => (
-            <div key={item.title} className="flex gap-4">
-              <div className="w-11 h-11 shrink-0 bg-void text-red flex items-center justify-center chamfer-sm">
-                <item.icon size={20} />
-              </div>
-              <div>
-                <p className="font-medium text-sm mb-1">{item.title}</p>
-                <p className="text-xs text-steel">{item.copy}</p>
-              </div>
+      <section className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8 py-14 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[
+          { icon: Truck, title: "Fast dispatch", copy: "Same-day dispatch on orders placed before 4pm." },
+          { icon: ShieldCheck, title: "Genuine stock", copy: "Authorized dealer — full manufacturer warranty, up to 3 years on electronics." },
+          { icon: RotateCcw, title: "7-day returns", copy: "Change-of-mind returns on unopened items within 7 days." },
+          { icon: Headphones, title: "Real support", copy: "WhatsApp or call, 11am-9:30pm — a person answers, not a bot." },
+        ].map((item) => (
+          <div key={item.title} className="flex gap-4">
+            <div className="w-11 h-11 shrink-0 bg-void text-red flex items-center justify-center chamfer-sm">
+              <item.icon size={20} />
             </div>
-          ))}
-        </section>
-      </Reveal>
+            <div>
+              <p className="font-medium text-sm mb-1">{item.title}</p>
+              <p className="text-xs text-steel">{item.copy}</p>
+            </div>
+          </div>
+        ))}
+      </section>
     </>
   );
 }

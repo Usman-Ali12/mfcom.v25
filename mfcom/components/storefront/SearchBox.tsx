@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search as SearchIcon, Loader2 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { formatPrice } from "@/lib/utils";
 
 type Suggestion = { slug: string; name: string; brand: string; price: number; image: string };
@@ -89,40 +90,48 @@ export default function SearchBox({
         </div>
       </form>
 
-      {showDropdown && (
-        <div className="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-graphite border border-line dark:border-white/10 chamfer-sm shadow-2xl z-50 overflow-hidden">
-          {results.length === 0 && !loading ? (
-            <p className="text-sm text-steel px-4 py-4 text-center">No matches for "{query}"</p>
-          ) : (
-            <>
-              {results.map((r) => (
-                <Link
-                  key={r.slug}
-                  href={`/product/${r.slug}`}
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 px-4 py-2.5 hover:bg-paper dark:hover:bg-white/5 transition-colors"
+      <AnimatePresence>
+        {showDropdown && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-graphite border border-line dark:border-white/10 chamfer-sm shadow-2xl z-50 overflow-hidden"
+          >
+            {results.length === 0 && !loading ? (
+              <p className="text-sm text-steel px-4 py-4 text-center">No matches for "{query}"</p>
+            ) : (
+              <>
+                {results.map((r) => (
+                  <Link
+                    key={r.slug}
+                    href={`/product/${r.slug}`}
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-paper dark:hover:bg-white/5 transition-colors"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={r.image} alt="" className="w-10 h-10 object-cover chamfer-sm bg-paper shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm truncate dark:text-paper">{r.name}</p>
+                      <p className="text-xs text-steel">{r.brand}</p>
+                    </div>
+                    <span className="font-mono text-xs font-medium shrink-0 dark:text-paper">
+                      {formatPrice(r.price)}
+                    </span>
+                  </Link>
+                ))}
+                <button
+                  onClick={handleSubmit}
+                  className="w-full text-center text-sm text-red font-medium py-2.5 border-t border-line dark:border-white/10 hover:bg-paper dark:hover:bg-white/5 transition-colors"
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={r.image} alt="" className="w-10 h-10 object-cover chamfer-sm bg-paper shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm truncate dark:text-paper">{r.name}</p>
-                    <p className="text-xs text-steel">{r.brand}</p>
-                  </div>
-                  <span className="font-mono text-xs font-medium shrink-0 dark:text-paper">
-                    {formatPrice(r.price)}
-                  </span>
-                </Link>
-              ))}
-              <button
-                onClick={handleSubmit}
-                className="w-full text-center text-sm text-red font-medium py-2.5 border-t border-line dark:border-white/10 hover:bg-paper dark:hover:bg-white/5 transition-colors"
-              >
-                See all results for "{query}"
-              </button>
-            </>
-          )}
-        </div>
-      )}
+                  See all results for "{query}"
+                </button>
+              </>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

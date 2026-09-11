@@ -150,7 +150,7 @@ export default function ProductPurchasePanel({ product, whatsappNumber }: { prod
             <div className="flex items-center border border-line dark:border-white/10 chamfer-sm h-12 dark:text-paper">
               <button
                 onClick={() => setQty((q) => Math.max(1, q - 1))}
-                className="w-11 h-full flex items-center justify-center hover:text-red transition-colors"
+                className="press w-11 h-full flex items-center justify-center hover:text-red transition-colors"
                 aria-label="Decrease quantity"
               >
                 <Minus size={14} />
@@ -158,7 +158,7 @@ export default function ProductPurchasePanel({ product, whatsappNumber }: { prod
               <span className="w-10 text-center font-mono text-sm">{qty}</span>
               <button
                 onClick={() => setQty((q) => Math.min(product.stockCount, q + 1))}
-                className="w-11 h-full flex items-center justify-center hover:text-red transition-colors"
+                className="press w-11 h-full flex items-center justify-center hover:text-red transition-colors"
                 aria-label="Increase quantity"
               >
                 <Plus size={14} />
@@ -167,7 +167,7 @@ export default function ProductPurchasePanel({ product, whatsappNumber }: { prod
             <button
               onClick={handleAddToCart}
               disabled={outOfStock}
-              className={`flex-1 h-12 text-sm font-medium chamfer transition-colors flex items-center justify-center gap-2 ${
+              className={`press flex-1 h-12 text-sm font-medium chamfer transition-colors flex items-center justify-center gap-2 ${
                 added ? "bg-green-700 text-white" : "bg-void text-white hover:bg-red dark:bg-red dark:hover:bg-red-dim"
               }`}
             >
@@ -198,7 +198,7 @@ export default function ProductPurchasePanel({ product, whatsappNumber }: { prod
             <button
               onClick={handleBuyNow}
               disabled={outOfStock}
-              className="h-12 bg-red text-white text-sm font-medium chamfer hover:bg-red-dim transition-colors disabled:opacity-50"
+              className="press h-12 bg-red text-white text-sm font-medium chamfer hover:bg-red-dim transition-colors disabled:opacity-50"
             >
               Buy Now
             </button>
@@ -233,7 +233,7 @@ export default function ProductPurchasePanel({ product, whatsappNumber }: { prod
         <button
           onClick={handleAddToCart}
           disabled={outOfStock}
-          className={`flex-1 h-12 text-sm font-medium chamfer-sm transition-colors flex items-center justify-center gap-2 ${
+          className={`press flex-1 h-12 text-sm font-medium chamfer-sm transition-colors flex items-center justify-center gap-2 ${
             added ? "bg-green-700 text-white" : "bg-void dark:bg-graphite dark:border dark:border-white/20 text-white dark:text-paper"
           }`}
         >
@@ -250,7 +250,7 @@ export default function ProductPurchasePanel({ product, whatsappNumber }: { prod
         <button
           onClick={handleBuyNow}
           disabled={outOfStock}
-          className="flex-1 h-12 bg-red text-white text-sm font-medium chamfer-sm disabled:opacity-50"
+          className="press flex-1 h-12 bg-red text-white text-sm font-medium chamfer-sm disabled:opacity-50"
         >
           Buy Now
         </button>
