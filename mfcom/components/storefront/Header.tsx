@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Heart, ShoppingCart, Menu, X, ChevronRight } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
@@ -88,36 +88,44 @@ export default function Header({
               </button>
 
               {/* Mega menu */}
-              {menuOpen && (
-                <div className="absolute left-0 top-full w-[720px] bg-void border border-white/10 border-t-2 border-t-red shadow-2xl">
-                  <div className="grid grid-cols-3 gap-x-8 gap-y-6 p-8">
-                    {categoryGroups.map((group) => (
-                      <div key={group.group}>
-                        <p className="mono-label text-[11px] text-red mb-3">{group.group}</p>
-                        <ul className="space-y-2.5">
-                          {group.items.map((item) => (
-                            <li key={item}>
-                              <Link
-                                href={`/category/${item.toLowerCase().replace(/\s+/g, "-")}`}
-                                className="text-sm text-paper/85 hover:text-red transition-colors"
-                              >
-                                {item}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
-                  <Link
-                    href="/deals"
-                    className="flex items-center justify-between px-8 py-4 bg-red/10 text-red text-sm font-medium hover:bg-red/15 transition-colors"
+              <AnimatePresence>
+                {menuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+                    className="absolute left-0 top-full w-[720px] bg-void border border-white/10 border-t-2 border-t-red shadow-2xl"
                   >
-                    View this week's deals
-                    <ChevronRight size={16} />
-                  </Link>
-                </div>
-              )}
+                    <div className="grid grid-cols-3 gap-x-8 gap-y-6 p-8">
+                      {categoryGroups.map((group) => (
+                        <div key={group.group}>
+                          <p className="mono-label text-[11px] text-red mb-3">{group.group}</p>
+                          <ul className="space-y-2.5">
+                            {group.items.map((item) => (
+                              <li key={item}>
+                                <Link
+                                  href={`/category/${item.toLowerCase().replace(/\s+/g, "-")}`}
+                                  className="text-sm text-paper/85 hover:text-red transition-colors"
+                                >
+                                  {item}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                    <Link
+                      href="/deals"
+                      className="flex items-center justify-between px-8 py-4 bg-red/10 text-red text-sm font-medium hover:bg-red/15 transition-colors"
+                    >
+                      View this week's deals
+                      <ChevronRight size={16} />
+                    </Link>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Search — predictive suggestions as you type */}
@@ -173,46 +181,54 @@ export default function Header({
       )}
 
       {/* Mobile drawer */}
-      {mobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-40 bg-void text-paper overflow-y-auto thin-scroll pt-[76px]">
-          <div className="p-6 space-y-8">
-            <Link
-              href="/wishlist"
-              className="flex items-center justify-between text-base py-1"
-              onClick={() => setMobileOpen(false)}
-            >
-              <span className="flex items-center gap-3">
-                <Heart size={18} />
-                Wishlist
-              </span>
-              {wishlistCount > 0 && (
-                <span className="bg-red text-[10px] leading-none w-4 h-4 rounded-full flex items-center justify-center font-semibold">
-                  {wishlistCount}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="lg:hidden fixed inset-0 z-40 bg-void text-paper overflow-y-auto thin-scroll pt-[76px]"
+          >
+            <div className="p-6 space-y-8">
+              <Link
+                href="/wishlist"
+                className="flex items-center justify-between text-base py-1"
+                onClick={() => setMobileOpen(false)}
+              >
+                <span className="flex items-center gap-3">
+                  <Heart size={18} />
+                  Wishlist
                 </span>
-              )}
-            </Link>
+                {wishlistCount > 0 && (
+                  <span className="bg-red text-[10px] leading-none w-4 h-4 rounded-full flex items-center justify-center font-semibold">
+                    {wishlistCount}
+                  </span>
+                )}
+              </Link>
 
-            {categoryGroups.map((group) => (
-              <div key={group.group}>
-                <p className="mono-label text-[11px] text-red mb-3">{group.group}</p>
-                <ul className="space-y-3">
-                  {group.items.map((item) => (
-                    <li key={item}>
-                      <Link
-                        href={`/category/${item.toLowerCase().replace(/\s+/g, "-")}`}
-                        className="text-base"
-                        onClick={() => setMobileOpen(false)}
-                      >
-                        {item}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+              {categoryGroups.map((group) => (
+                <div key={group.group}>
+                  <p className="mono-label text-[11px] text-red mb-3">{group.group}</p>
+                  <ul className="space-y-3">
+                    {group.items.map((item) => (
+                      <li key={item}>
+                        <Link
+                          href={`/category/${item.toLowerCase().replace(/\s+/g, "-")}`}
+                          className="text-base"
+                          onClick={() => setMobileOpen(false)}
+                        >
+                          {item}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
