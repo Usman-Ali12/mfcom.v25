@@ -9,6 +9,7 @@ import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
 import ThemeToggle from "@/components/storefront/ThemeToggle";
 import SearchBox from "@/components/storefront/SearchBox";
+import TrackOrderQuickEntry from "@/components/storefront/TrackOrderQuickEntry";
 
 export default function Header({
   // Unused for now — was feeding the announcement bar, which is parked
@@ -134,6 +135,12 @@ export default function Header({
             </div>
 
             <div className="flex items-center gap-1 ml-auto">
+              {/* Fully built (form + /track/[orderNumber] page) but had no
+                  entry point anywhere in the UI — only reachable by typing
+                  the URL directly. This is its natural home: always
+                  visible, same dark utility-row styling it was already
+                  built for. */}
+              <TrackOrderQuickEntry />
               <ThemeToggle />
               <Link
                 href="/wishlist"

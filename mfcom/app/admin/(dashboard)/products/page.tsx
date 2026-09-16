@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Pencil, ExternalLink } from "lucide-react";
+import { Plus, Pencil, ExternalLink, Upload } from "lucide-react";
 import { listProducts } from "@/lib/admin-store";
 import DeleteProductButton from "./DeleteProductButton";
 
@@ -44,12 +44,20 @@ export default async function AdminProductsPage() {
           <h1 className="font-display text-2xl font-semibold">Products</h1>
           <p className="text-sm text-steel mt-1">{products.length} products</p>
         </div>
-        <Link
-          href="/admin/products/new"
-          className="flex items-center gap-2 h-10 px-3 sm:px-4 bg-red text-white text-sm font-medium chamfer-sm hover:bg-red-dim transition-colors shrink-0"
-        >
-          <Plus size={16} /> <span className="hidden sm:inline">Add product</span>
-        </Link>
+        <div className="flex items-center gap-2 shrink-0">
+          <Link
+            href="/admin/products/import"
+            className="flex items-center gap-2 h-10 px-3 sm:px-4 border border-line text-sm font-medium chamfer-sm hover:border-void transition-colors"
+          >
+            <Upload size={16} /> <span className="hidden sm:inline">Import CSV</span>
+          </Link>
+          <Link
+            href="/admin/products/new"
+            className="flex items-center gap-2 h-10 px-3 sm:px-4 bg-red text-white text-sm font-medium chamfer-sm hover:bg-red-dim transition-colors"
+          >
+            <Plus size={16} /> <span className="hidden sm:inline">Add product</span>
+          </Link>
+        </div>
       </div>
 
       {/* Mobile: stacked cards — nothing gets pushed off-screen the way a

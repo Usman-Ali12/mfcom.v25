@@ -42,7 +42,7 @@ export default function Carousel({ children }: { children: React.ReactNode }) {
         <button
           onClick={() => scrollByCard(-1)}
           aria-label="Scroll left"
-          className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-10 -translate-x-1/2 w-10 h-10 items-center justify-center bg-white border border-line chamfer-sm shadow-lg opacity-0 group-hover/carousel:opacity-100 transition-opacity hover:bg-paper"
+          className="press hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-10 -translate-x-1/2 w-10 h-10 items-center justify-center bg-white dark:bg-graphite border border-line dark:border-white/10 chamfer-sm shadow-lg opacity-0 group-hover/carousel:opacity-100 transition-opacity hover:bg-paper dark:hover:bg-white/5 dark:text-paper"
         >
           <ChevronLeft size={18} />
         </button>
@@ -51,7 +51,7 @@ export default function Carousel({ children }: { children: React.ReactNode }) {
         <button
           onClick={() => scrollByCard(1)}
           aria-label="Scroll right"
-          className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-10 translate-x-1/2 w-10 h-10 items-center justify-center bg-white border border-line chamfer-sm shadow-lg opacity-0 group-hover/carousel:opacity-100 transition-opacity hover:bg-paper"
+          className="press hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-10 translate-x-1/2 w-10 h-10 items-center justify-center bg-white dark:bg-graphite border border-line dark:border-white/10 chamfer-sm shadow-lg opacity-0 group-hover/carousel:opacity-100 transition-opacity hover:bg-paper dark:hover:bg-white/5 dark:text-paper"
         >
           <ChevronRight size={18} />
         </button>

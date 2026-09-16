@@ -1,0 +1,216 @@
+import "server-only";
+
+// -----------------------------------------------------------------------------
+// WhatsApp catalog importer — turns a CSV exported by a WhatsApp-catalog
+// scraper into draft products ready for review in the admin UI.
+//
+// The scraper's CSV shape (observed from the real export used to build this):
+//   index, name, price, price_value, currency, description, product_link,
+//   image_url, image_data, raw_text
+// - Row 1 is the business's own profile card, not a product — skipped.
+// - Most rows are extra photos for a product with no name/price of their
+//   own (the scraper emits one row per image) — skipped, since without a
+//   name there's nothing to import; the product's own row already carries
+//   its main photo.
+// - image_data is a base64 data: URL of the actual WhatsApp catalog photo —
+//   real photos of what's actually being sold, not stock photography.
+//
+// No CSV library dependency on purpose: the format is simple enough that a
+// small RFC4180-style parser (quoted fields, embedded commas/newlines,
+// doubled-quote escaping) covers it without adding a package the client
+// would need to `npm install` after merging this.
+// -----------------------------------------------------------------------------
+
+function parseCsv(text: string): string[][] {
+  // Strip a UTF-8 BOM if present (common from Excel/scraper exports).
+  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    const next = text[i + 1];
+
+    if (inQuotes) {
+      if (c === '"' && next === '"') {
+        field += '"';
+        i++;
+      } else if (c === '"') {
+        inQuotes = false;
+      } else {
+        field += c;
+      }
+      continue;
+    }
+
+    if (c === '"') {
+      inQuotes = true;
+    } else if (c === ",") {
+      row.push(field);
+      field = "";
+    } else if (c === "\r") {
+      // swallow — \r\n line endings are handled by the \n branch
+    } else if (c === "\n") {
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = "";
+    } else {
+      field += c;
+    }
+  }
+  if (field.length > 0 || row.length > 0) {
+    row.push(field);
+    rows.push(row);
+  }
+  return rows.filter((r) => r.length > 1 || (r.length === 1 && r[0].trim() !== ""));
+}
+
+export type CatalogDraftRow = {
+  sourceIndex: string;
+  name: string;
+  brand: string;
+  categorySlugGuess: string;
+  condition: "new" | "used";
+  price: number | null;
+  currency: string;
+  description: string;
+  imageDataUrl: string | null;
+  imageUrlFallback: string;
+};
+
+type CategoryRule = { keywords: string[]; slug: string };
+
+// Matched against existing category slugs from supabase/migrations/0002_categories.sql.
+// "networking" isn't seeded there — routers/modems/adapters have no natural
+// home in a catalog built around gaming peripherals, so the import screen
+// offers "+ create new category" for it same as the manual product form does.
+const CATEGORY_RULES: CategoryRule[] = [
+  { keywords: ["router", "fiber device", "modem"], slug: "networking" },
+  { keywords: ["wifi", "wi-fi", "wireless adapter"], slug: "networking" },
+  { keywords: ["android box", "tv box"], slug: "networking" },
+  { keywords: ["gaming mouse", "gaming  mouse"], slug: "gaming-mice" },
+  { keywords: ["mouse"], slug: "mice" },
+  { keywords: ["gaming keyboard"], slug: "gaming-keyboards" },
+  { keywords: ["keyboard", "kb-216", "kb216"], slug: "keyboards" },
+  { keywords: ["gaming headset", "gaming head set"], slug: "gaming-headsets" },
+  { keywords: ["headset", "headphone", "earphone", "calling"], slug: "headphones" },
+  { keywords: ["speaker"], slug: "speakers" },
+  { keywords: ["microphone", "mic "], slug: "microphones" },
+  { keywords: ["docking station", "dock"], slug: "docking-stations" },
+  { keywords: ["hardisk", "hard disk", "hdd", "portable drive"], slug: "hdd" },
+  { keywords: ["ssd"], slug: "ssd" },
+  { keywords: ["ram", "memory module"], slug: "ram" },
+  { keywords: ["graphics card", "gpu"], slug: "graphics-cards" },
+  { keywords: ["processor", "cpu"], slug: "processors" },
+  { keywords: ["gaming laptop"], slug: "gaming-laptops" },
+  { keywords: ["laptop"], slug: "laptops" },
+  { keywords: ["desktop pc", "desktop computer"], slug: "desktop-pcs" },
+  { keywords: ["laptop stand"], slug: "laptop-stands" },
+  { keywords: ["cooling pad"], slug: "cooling-pads" },
+  { keywords: ["usb hub"], slug: "usb-hubs" },
+  { keywords: ["charger", "power bank", "power adapter"], slug: "chargers" },
+  { keywords: ["cable", "connector", "power code"], slug: "cables" },
+];
+
+function guessCategorySlug(name: string, description: string): string {
+  const text = `${name} ${description}`.toLowerCase();
+  for (const rule of CATEGORY_RULES) {
+    if (rule.keywords.some((k) => text.includes(k))) return rule.slug;
+  }
+  return "";
+}
+
+function guessCondition(name: string, description: string): "new" | "used" {
+  const text = `${name} ${description}`.toLowerCase();
+  if (text.includes("used") || text.includes("2nd hand") || text.includes("second hand") || text.includes("open box")) {
+    return "used";
+  }
+  return "new";
+}
+
+const KNOWN_BRANDS = [
+  "Dell", "HP", "Lenovo", "Logitech", "Apple", "AJAZZ", "TP-Link", "Tp link", "Seagate",
+  "WD", "Western Digital", "Razer", "HyperX", "Asus", "Acer", "Samsung", "MSI",
+];
+
+function guessBrand(name: string, description: string): string {
+  const text = `${name} ${description}`;
+  for (const brand of KNOWN_BRANDS) {
+    if (text.toLowerCase().includes(brand.toLowerCase())) return brand;
+  }
+  return "";
+}
+
+export function parseWhatsAppCatalogCsv(csvText: string): { drafts: CatalogDraftRow[]; skippedCount: number } {
+  const rows = parseCsv(csvText);
+  if (rows.length === 0) return { drafts: [], skippedCount: 0 };
+
+  const header = rows[0].map((h) => h.trim().toLowerCase());
+  const col = (key: string) => header.indexOf(key);
+
+  const idxIndex = col("index");
+  const idxName = col("name");
+  const idxPriceValue = col("price_value");
+  const idxCurrency = col("currency");
+  const idxDescription = col("description");
+  const idxImageUrl = col("image_url");
+  const idxImageData = col("image_data");
+
+  const drafts: CatalogDraftRow[] = [];
+  let skippedCount = 0;
+
+  for (let r = 1; r < rows.length; r++) {
+    const cells = rows[r];
+    const get = (i: number) => (i >= 0 && i < cells.length ? cells[i].trim() : "");
+
+    const sourceIndex = get(idxIndex) || String(r);
+    const name = get(idxName);
+    const description = get(idxDescription);
+
+    // Row 1 of the real export is the store's own profile card ("Mf Com …"),
+    // not a product — it has a name/description like any other row, so a
+    // plain empty-name check wouldn't catch it. The scraper always puts it
+    // at index 1; every real catalog item starts numbering after it.
+    if (sourceIndex === "1") {
+      skippedCount++;
+      continue;
+    }
+    if (!name || name.trim().length === 0) {
+      skippedCount++;
+      continue;
+    }
+
+    const priceRaw = get(idxPriceValue);
+    const price = priceRaw ? Number(priceRaw.replace(/[^0-9.]/g, "")) : null;
+
+    const imageData = get(idxImageData);
+    const imageDataUrl = imageData.startsWith("data:image") ? imageData : null;
+
+    drafts.push({
+      sourceIndex,
+      name,
+      brand: guessBrand(name, description),
+      categorySlugGuess: guessCategorySlug(name, description),
+      condition: guessCondition(name, description),
+      price: price && !Number.isNaN(price) ? price : null,
+      currency: get(idxCurrency) || "PKR",
+      description,
+      imageDataUrl,
+      imageUrlFallback: get(idxImageUrl),
+    });
+  }
+
+  return { drafts, skippedCount };
+}
+
+export function dataUrlToFile(dataUrl: string, filename: string): File {
+  const [header, base64] = dataUrl.split(",");
+  const mimeMatch = header.match(/data:(.*);base64/);
+  const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
+  const bytes = Buffer.from(base64, "base64");
+  return new File([bytes], filename, { type: mime });
+}

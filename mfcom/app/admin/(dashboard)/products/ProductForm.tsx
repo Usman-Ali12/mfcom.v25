@@ -2,10 +2,11 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { Plus, X, Upload, Loader2 } from "lucide-react";
+import { Plus, X, Upload, Loader2, Wand2 } from "lucide-react";
 import Select from "@/components/storefront/Select";
 import type { Product } from "@/lib/mock-data";
 import type { MediaItem } from "@/lib/media-store";
+import { padCutoutOntoWhiteSquare } from "@/lib/image-composite";
 
 // Sentinel used for the "+ New brand…" / "+ New category…" options below.
 // The server action (products/actions.ts) checks for this exact value and,
@@ -40,6 +41,8 @@ export default function ProductForm({
   const [library, setLibrary] = useState<MediaItem[]>(mediaItems);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [removeBg, setRemoveBg] = useState(false);
+  const [bgStep, setBgStep] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [brand, setBrand] = useState(initial?.brand || "");
@@ -113,6 +116,28 @@ export default function ProductForm({
   // MediaLibraryClient uses. Previously this form could only pick from
   // already-uploaded images or a pasted URL; if nothing was uploaded yet,
   // there was no way to add one without leaving to /admin/media first.
+  //
+  // When "Remove background" is checked, each file first goes through
+  // /api/admin/remove-background (remove.bg's API) for a transparent
+  // cutout, then gets padded onto a plain white square client-side (see
+  // lib/image-composite.ts) before it's uploaded — so a phone photo of an
+  // item on a desk comes out looking like an actual listing photo instead
+  // of a product floating in someone's living room.
+  async function processFileForUpload(file: File): Promise<File> {
+    setBgStep("Removing background…");
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch("/api/admin/remove-background", { method: "POST", body: formData });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || "Background removal failed");
+    }
+    const cutoutBlob = await res.blob();
+    setBgStep("Placing on white background…");
+    const finalBlob = await padCutoutOntoWhiteSquare(cutoutBlob);
+    return new File([finalBlob], file.name.replace(/\.[^.]+$/, "") + "-clean.jpg", { type: "image/jpeg" });
+  }
+
   async function uploadFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
     setUploading(true);
@@ -120,8 +145,9 @@ export default function ProductForm({
     try {
       for (const file of Array.from(files)) {
         if (!file.type.startsWith("image/")) continue;
+        const toUpload = removeBg ? await processFileForUpload(file) : file;
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("file", toUpload);
         const res = await fetch("/api/upload", { method: "POST", body: formData });
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
@@ -135,6 +161,7 @@ export default function ProductForm({
       setUploadError(e instanceof Error ? e.message : "Upload failed");
     } finally {
       setUploading(false);
+      setBgStep(null);
     }
   }
 
@@ -385,6 +412,11 @@ export default function ProductForm({
         {/* Upload directly from here — drag & drop or click. Previously the
             only way to add a brand-new image was to leave this form, go to
             /admin/media, upload there, then come back and pick it. */}
+        <label className="flex items-center gap-2 mb-3 text-sm cursor-pointer w-fit">
+          <input type="checkbox" checked={removeBg} onChange={(e) => setRemoveBg(e.target.checked)} />
+          <Wand2 size={14} className="text-red" />
+          <span>Remove background (for a manually-photographed item — auto-cleans it onto a white background)</span>
+        </label>
         <div
           onDragOver={(e) => {
             e.preventDefault();
@@ -407,7 +439,7 @@ export default function ProductForm({
             <Upload size={17} className={dragging ? "text-red" : "text-steel"} />
           )}
           <span className="text-sm font-medium">
-            {uploading ? "Uploading…" : "Drop an image here, or click to upload"}
+            {uploading ? bgStep || "Uploading…" : "Drop an image here, or click to upload"}
           </span>
           <input
             ref={fileInputRef}
