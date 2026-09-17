@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminUser } from "@/lib/supabase/auth";
 import { uploadMedia } from "@/lib/media-store";
-import { parseWhatsAppCatalogCsv, dataUrlToFile } from "@/lib/catalog-import";
+import { parseWhatsAppCatalogCsv, dataUrlToFile, enhanceCatalogPhoto } from "@/lib/catalog-import";
 import { listCategories } from "@/lib/categories-store";
 import { listBrands } from "@/lib/brands-store";
 
@@ -45,10 +45,16 @@ export async function POST(request: NextRequest) {
   const results = await Promise.allSettled(
     drafts.map(async (d) => {
       let imageUrl = "";
+      let enhanced = false;
       if (d.imageDataUrl) {
         try {
-          const imgFile = dataUrlToFile(d.imageDataUrl, `catalog-${d.sourceIndex}.jpg`);
-          const media = await uploadMedia(imgFile);
+          const rawFile = dataUrlToFile(d.imageDataUrl, `catalog-${d.sourceIndex}.jpg`);
+          // Auto-orient/pad/sharpen the real photo (wsrv.nl) — falls back
+          // to the untouched original if that service is unreachable, so
+          // a hiccup there never costs the product its photo.
+          const { file: finalFile, enhanced: didEnhance } = await enhanceCatalogPhoto(rawFile);
+          enhanced = didEnhance;
+          const media = await uploadMedia(finalFile);
           imageUrl = media.url;
         } catch {
           imageUrl = d.imageUrlFallback || "";
@@ -66,6 +72,7 @@ export async function POST(request: NextRequest) {
         currency: d.currency,
         description: d.description,
         imageUrl,
+        enhanced,
         include: true,
       };
     })

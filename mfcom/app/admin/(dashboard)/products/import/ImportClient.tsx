@@ -17,6 +17,7 @@ type Row = {
   currency: string;
   description: string;
   imageUrl: string;
+  enhanced: boolean;
   include: boolean;
   // "" means unmatched / needs a manual pick. A non-empty value is either
   // an existing category slug, or — when isNewCategory is true — the raw
@@ -60,6 +61,7 @@ export default function ImportClient() {
           currency: d.currency,
           description: d.description,
           imageUrl: d.imageUrl,
+          enhanced: d.enhanced,
           include: true,
           categorySlug: d.categorySlugGuess || "",
           isNewCategory: false,
@@ -227,6 +229,9 @@ export default function ImportClient() {
                     <img src={row.imageUrl} alt="" className="w-10 h-10 object-cover chamfer-sm bg-paper" />
                   ) : (
                     <div className="w-10 h-10 bg-paper chamfer-sm" />
+                  )}
+                  {!row.enhanced && row.imageUrl && (
+                    <p className="text-[10px] text-steel mt-1 leading-tight">not cleaned up</p>
                   )}
                 </td>
                 <td className="p-3 align-top">

@@ -1,4 +1,5 @@
 import "server-only";
+import { createServerSupabaseClient } from "./supabase/server";
 
 // -----------------------------------------------------------------------------
 // WhatsApp catalog importer — turns a CSV exported by a WhatsApp-catalog
@@ -213,4 +214,73 @@ export function dataUrlToFile(dataUrl: string, filename: string): File {
   const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
   const bytes = Buffer.from(base64, "base64");
   return new File([bytes], filename, { type: mime });
+}
+
+// -----------------------------------------------------------------------------
+// Photo cleanup for imported catalog images — NOT background removal.
+//
+// These are real WhatsApp catalog photos, often a collage of a few angles
+// with a logo/text overlay baked in by whoever made the listing — there's
+// no single clean "subject" to cut out the way there is for a one-off
+// product photo, so remove.bg's approach doesn't fit here. What actually
+// helps: auto-orient, pad onto a consistent white square, sharpen, and
+// color-correct — the same photo, just presentable. That's exactly what
+// wsrv.nl (images.weserv.nl) does as a free image proxy — no API key, no
+// signup, no request quota to run out of.
+//
+// wsrv.nl needs a fetchable https URL, not raw bytes, so this is a
+// three-step round trip: stash the raw decoded photo in Storage just long
+// enough to hand its URL to wsrv.nl, fetch back the enhanced version, then
+// delete the temp copy — only the enhanced photo becomes a permanent media
+// library entry, so a 109-photo import doesn't leave 109 redundant
+// "-raw" originals cluttering Admin > Media.
+// -----------------------------------------------------------------------------
+
+function wsrvEnhanceUrl(publicUrl: string): string {
+  const params = new URLSearchParams({
+    url: publicUrl,
+    w: "1000",
+    h: "1000",
+    fit: "contain",
+    bg: "white",
+    a: "attention", // smart-crop toward the actual subject when padding
+    output: "jpg",
+    q: "90",
+    sharp: "1",
+  });
+  return `https://wsrv.nl/?${params.toString()}`;
+}
+
+export async function enhanceCatalogPhoto(
+  imgFile: File
+): Promise<{ file: File; enhanced: boolean }> {
+  const supabase = createServerSupabaseClient();
+  const BUCKET = "media";
+  const tempPath = `tmp/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${imgFile.name}`;
+
+  try {
+    const bytes = await imgFile.arrayBuffer();
+    const { error: uploadError } = await supabase.storage
+      .from(BUCKET)
+      .upload(tempPath, bytes, { contentType: imgFile.type, upsert: false });
+    if (uploadError) throw uploadError;
+
+    const { data: publicUrlData } = supabase.storage.from(BUCKET).getPublicUrl(tempPath);
+
+    const enhanceRes = await fetch(wsrvEnhanceUrl(publicUrlData.publicUrl));
+    if (!enhanceRes.ok) throw new Error(`wsrv.nl returned ${enhanceRes.status}`);
+    const enhancedBytes = await enhanceRes.arrayBuffer();
+
+    // Best-effort cleanup — a leftover temp file is harmless clutter, not
+    // worth failing the whole import over.
+    supabase.storage.from(BUCKET).remove([tempPath]).catch(() => {});
+
+    const cleanName = imgFile.name.replace(/\.[^.]+$/, "") + "-clean.jpg";
+    return { file: new File([enhancedBytes], cleanName, { type: "image/jpeg" }), enhanced: true };
+  } catch {
+    // wsrv.nl unreachable, or storage hiccup — fall back to the original
+    // photo rather than losing the product's image entirely. Authenticity
+    // preserved either way; only the polish is best-effort.
+    return { file: imgFile, enhanced: false };
+  }
 }
