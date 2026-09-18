@@ -116,6 +116,19 @@ export default function ImportClient() {
   const missingCategoryCount = rows.filter((r) => r.include && !r.categorySlug).length;
 
   async function handleImport() {
+    // A product with no price isn't a partial success — Rs. 0 is what
+    // showed up on the live product page last time this got missed among
+    // 100+ rows. Force an explicit decision instead of letting it slip
+    // through silently.
+    if (missingPriceCount > 0) {
+      const ok = window.confirm(
+        `${missingPriceCount} product${missingPriceCount === 1 ? "" : "s"} still ${
+          missingPriceCount === 1 ? "has" : "have"
+        } no price set — ${missingPriceCount === 1 ? "it" : "they"} would go live showing "Rs. 0". Import anyway?`
+      );
+      if (!ok) return;
+    }
+
     setStatus("importing");
     const payload: ConfirmImportRow[] = rows
       .filter((r) => r.include)
