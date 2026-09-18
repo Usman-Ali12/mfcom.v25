@@ -104,23 +104,57 @@ export async function getProductById(id: string): Promise<Product | undefined> {
   return data ? rowToProduct(data as ProductRow) : undefined;
 }
 
+// PostgREST returns this error shape when a column exists in our TS types
+// but the migration that adds it hasn't actually been run against the live
+// database yet (its schema cache just doesn't know the column exists).
+// createProduct retries once without the offending field rather than
+// hard-failing the whole import/save — so "I added a column and forgot to
+// run the migration" degrades to "one field didn't save" instead of
+// blocking every product creation in the app until it's fixed.
+function missingColumnFromError(message: string): string | null {
+  const match = message.match(/Could not find the '([^']+)' column/);
+  return match ? match[1] : null;
+}
+
 export async function createProduct(input: Omit<Product, "id">): Promise<Product> {
   const supabase = createServerSupabaseClient();
   const id = `p${Date.now()}`;
-  const row = { id, ...productToRow(input) };
-  const { data, error } = await supabase.from("products").insert(row).select().single();
+  const row: Record<string, unknown> = { id, ...productToRow(input) };
+
+  let { data, error } = await supabase.from("products").insert(row).select().single();
+
+  if (error) {
+    const missingColumn = missingColumnFromError(error.message);
+    if (missingColumn && missingColumn in row) {
+      console.warn(
+        `createProduct: '${missingColumn}' column missing on products table (pending migration?) — saved without it.`
+      );
+      delete row[missingColumn];
+      ({ data, error } = await supabase.from("products").insert(row).select().single());
+    }
+  }
+
   if (error) throw new Error(`createProduct: ${error.message}`);
   return rowToProduct(data as ProductRow);
 }
 
 export async function updateProduct(id: string, input: Partial<Product>): Promise<Product | undefined> {
   const supabase = createServerSupabaseClient();
-  const { data, error } = await supabase
-    .from("products")
-    .update(productToRow(input))
-    .eq("id", id)
-    .select()
-    .maybeSingle();
+  const row: Record<string, unknown> = productToRow(input);
+
+  let { data, error } = await supabase.from("products").update(row).eq("id", id).select().maybeSingle();
+
+  if (error) {
+    const missingColumn = missingColumnFromError(error.message);
+    if (missingColumn && missingColumn in row) {
+      console.warn(
+        `updateProduct: '${missingColumn}' column missing on products table (pending migration?) — saved without it.`
+      );
+      delete row[missingColumn];
+      ({ data, error } = await supabase.from("products").update(row).eq("id", id).select().maybeSingle());
+    }
+  }
+
   if (error) throw new Error(`updateProduct: ${error.message}`);
   return data ? rowToProduct(data as ProductRow) : undefined;
 }

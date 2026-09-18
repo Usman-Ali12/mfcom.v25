@@ -37,22 +37,35 @@ export async function getBrandByName(name: string): Promise<Brand | undefined> {
 export async function createBrand(input: { name: string }): Promise<Brand> {
   const supabase = createServerSupabaseClient();
 
-  // Quick-add (from the product form) can race with someone else adding
-  // the same brand, or just be re-submitted — treat an existing name as a
-  // no-op success rather than a duplicate-key error bubbling up.
+  // Quick-add (from the product form, or the catalog importer) can race
+  // with someone else adding the same brand, or just be re-submitted —
+  // treat an existing name as a no-op success rather than a duplicate-key
+  // error bubbling up.
   const existing = await getBrandByName(input.name);
   if (existing) return existing;
 
   const all = await listBrands();
   const id = `brand-${Date.now()}`;
+  const slug = slugify(input.name);
   const row = {
     id,
     name: input.name,
-    slug: slugify(input.name),
+    slug,
     position: all.length ? Math.max(...all.map((b) => b.position)) + 1 : 0,
   };
   const { data, error } = await supabase.from("brands").insert(row).select(SELECT_COLUMNS).single();
-  if (error) throw new Error(`createBrand: ${error.message}`);
+  if (error) {
+    // Two different-looking names ("TP-Link" vs "Tp-Link Router") can
+    // slugify to the same value even though getBrandByName's exact-name
+    // check above didn't catch it. Rather than fail the whole product
+    // creation over a brand that, for all practical purposes, already
+    // exists, fall back to whichever brand actually holds that slug.
+    if (error.code === "23505") {
+      const { data: bySlug } = await supabase.from("brands").select(SELECT_COLUMNS).eq("slug", slug).maybeSingle();
+      if (bySlug) return bySlug as unknown as Brand;
+    }
+    throw new Error(`createBrand: ${error.message}`);
+  }
   return data as unknown as Brand;
 }
 

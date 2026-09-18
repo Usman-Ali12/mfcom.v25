@@ -134,7 +134,7 @@ function guessCondition(name: string, description: string): "new" | "used" {
 }
 
 const KNOWN_BRANDS = [
-  "Dell", "HP", "Lenovo", "Logitech", "Apple", "AJAZZ", "TP-Link", "Tp link", "Seagate",
+  "Dell", "HP", "Lenovo", "Logitech", "Apple", "AJAZZ", "TP-Link", "Seagate",
   "WD", "Western Digital", "Razer", "HyperX", "Asus", "Acer", "Samsung", "MSI",
 ];
 

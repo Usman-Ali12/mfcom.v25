@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Upload, Loader2, AlertTriangle, CheckCircle2, X } from "lucide-react";
+import { Upload, Loader2, AlertTriangle, CheckCircle2, X, Link2, ImagePlus, ZoomIn } from "lucide-react";
 import Select, { type SelectOption } from "@/components/storefront/Select";
 import { confirmCatalogImportAction, type ConfirmImportRow } from "./actions";
 
@@ -38,6 +38,11 @@ export default function ImportClient() {
   const [categories, setCategories] = useState<ApiCategory[]>([]);
   const [skippedCount, setSkippedCount] = useState(0);
   const [result, setResult] = useState<{ imported: number; failed: { name: string; error: string }[] } | null>(null);
+  const [zoomUrl, setZoomUrl] = useState<string | null>(null);
+  const [urlEditIndex, setUrlEditIndex] = useState<number | null>(null);
+  const [rowUploadingIndex, setRowUploadingIndex] = useState<number | null>(null);
+  const rowFileInputRef = useRef<HTMLInputElement>(null);
+  const rowFileTargetIndex = useRef<number | null>(null);
 
   async function handleFile(file: File) {
     setStatus("uploading");
@@ -76,6 +81,26 @@ export default function ImportClient() {
 
   function updateRow(index: number, patch: Partial<Row>) {
     setRows((prev) => prev.map((r, i) => (i === index ? { ...r, ...patch } : r)));
+  }
+
+  // A row's photo is just a URL on the draft — from the internet, from a
+  // device upload, or the cleaned-up WhatsApp original. Swapping it never
+  // touches Supabase until Import is clicked; uploading a replacement file
+  // goes through the same /api/upload every other image in the admin uses.
+  async function replaceRowImageFromFile(index: number, file: File) {
+    setRowUploadingIndex(index);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed");
+      updateRow(index, { imageUrl: data.url, enhanced: true });
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Couldn't upload that photo");
+    } finally {
+      setRowUploadingIndex(null);
+    }
   }
 
   function categoryOptionsFor(row: Row): SelectOption[] {
@@ -224,14 +249,72 @@ export default function ImportClient() {
                   />
                 </td>
                 <td className="p-3 align-top">
-                  {row.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={row.imageUrl} alt="" className="w-10 h-10 object-cover chamfer-sm bg-paper" />
-                  ) : (
-                    <div className="w-10 h-10 bg-paper chamfer-sm" />
-                  )}
+                  <div className="relative w-16 h-16 group">
+                    {row.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={row.imageUrl}
+                        alt=""
+                        onClick={() => setZoomUrl(row.imageUrl)}
+                        className="w-16 h-16 object-cover chamfer-sm bg-paper cursor-zoom-in border border-line"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 bg-paper chamfer-sm border border-dashed border-line" />
+                    )}
+                    {row.imageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setZoomUrl(row.imageUrl)}
+                        className="absolute inset-0 flex items-center justify-center bg-void/0 group-hover:bg-void/40 opacity-0 group-hover:opacity-100 transition-all"
+                      >
+                        <ZoomIn size={16} className="text-white" />
+                      </button>
+                    )}
+                    {rowUploadingIndex === i && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-white/80">
+                        <Loader2 size={16} className="animate-spin text-red" />
+                      </div>
+                    )}
+                  </div>
                   {!row.enhanced && row.imageUrl && (
                     <p className="text-[10px] text-steel mt-1 leading-tight">not cleaned up</p>
+                  )}
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <button
+                      type="button"
+                      title="Upload from your device"
+                      onClick={() => {
+                        rowFileTargetIndex.current = i;
+                        rowFileInputRef.current?.click();
+                      }}
+                      className="text-steel hover:text-red transition-colors"
+                    >
+                      <ImagePlus size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      title="Paste an image URL"
+                      onClick={() => setUrlEditIndex(urlEditIndex === i ? null : i)}
+                      className="text-steel hover:text-red transition-colors"
+                    >
+                      <Link2 size={14} />
+                    </button>
+                  </div>
+                  {urlEditIndex === i && (
+                    <input
+                      autoFocus
+                      placeholder="Paste image URL, Enter to use"
+                      className="w-32 h-7 px-1.5 mt-1 border border-line chamfer-sm text-[11px]"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          const url = (e.target as HTMLInputElement).value.trim();
+                          if (url) updateRow(i, { imageUrl: url, enhanced: false });
+                          setUrlEditIndex(null);
+                        } else if (e.key === "Escape") {
+                          setUrlEditIndex(null);
+                        }
+                      }}
+                    />
                   )}
                 </td>
                 <td className="p-3 align-top">
@@ -328,6 +411,38 @@ export default function ImportClient() {
           Import {includedCount} product{includedCount === 1 ? "" : "s"}
         </button>
       </div>
+
+      {/* Shared by every row's "upload from device" button, so it's one
+          hidden input rather than 100+ of them on the page. */}
+      <input
+        ref={rowFileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          const idx = rowFileTargetIndex.current;
+          if (file && idx !== null) replaceRowImageFromFile(idx, file);
+          e.target.value = "";
+        }}
+      />
+
+      {zoomUrl && (
+        <div
+          className="fixed inset-0 z-[100] bg-void/90 flex items-center justify-center p-8 cursor-zoom-out"
+          onClick={() => setZoomUrl(null)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={zoomUrl} alt="" className="max-w-full max-h-full object-contain bg-white" />
+          <button
+            onClick={() => setZoomUrl(null)}
+            className="absolute top-5 right-5 text-white hover:text-red"
+            aria-label="Close preview"
+          >
+            <X size={28} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
