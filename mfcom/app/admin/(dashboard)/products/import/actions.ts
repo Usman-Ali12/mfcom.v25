@@ -76,7 +76,7 @@ export async function confirmCatalogImportAction(
         currency: (row.currency as Product["currency"]) || "PKR",
         stock: "in-stock",
         stockCount: 10,
-        rating: 4.5,
+        rating: 0,
         reviewCount: 0,
         image: row.imageUrl,
         gallery: row.imageUrl ? [row.imageUrl] : [],

@@ -106,18 +106,20 @@ export default function ProductPurchasePanel({ product, whatsappNumber }: { prod
             {product.name}
           </h1>
 
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex items-center gap-1">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <span key={i} className={i < Math.round(product.rating) ? "text-red" : "text-line dark:text-white/20"}>
-                  ★
-                </span>
-              ))}
+          {product.reviewCount > 0 && (
+            <div className="flex items-center gap-3 mb-6">
+              <div className="flex items-center gap-1">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <span key={i} className={i < Math.round(product.rating) ? "text-red" : "text-line dark:text-white/20"}>
+                    ★
+                  </span>
+                ))}
+              </div>
+              <span className="text-sm text-steel">
+                {product.rating} ({product.reviewCount} reviews)
+              </span>
             </div>
-            <span className="text-sm text-steel">
-              {product.rating} ({product.reviewCount} reviews)
-            </span>
-          </div>
+          )}
 
           {/* Price — large, high-contrast, always visible (never hover-gated) */}
           <div className="flex items-baseline gap-3 mb-1">

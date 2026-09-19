@@ -99,11 +99,13 @@ export default function ProductCard({ product }: { product: Product }) {
         </Link>
         <p className="text-xs text-steel mb-3 line-clamp-1">{product.shortSpec}</p>
 
-        <div className="flex items-center gap-1 mb-3">
-          <Star size={12} className="fill-red text-red" />
-          <span className="text-xs font-medium dark:text-paper">{product.rating}</span>
-          <span className="text-xs text-steel">({product.reviewCount})</span>
-        </div>
+        {product.reviewCount > 0 && (
+          <div className="flex items-center gap-1 mb-3">
+            <Star size={12} className="fill-red text-red" />
+            <span className="text-xs font-medium dark:text-paper">{product.rating}</span>
+            <span className="text-xs text-steel">({product.reviewCount})</span>
+          </div>
+        )}
 
         {/* Price is always shown at full weight — never gated behind hover,
             since it's the single most decision-relevant fact on the card. */}

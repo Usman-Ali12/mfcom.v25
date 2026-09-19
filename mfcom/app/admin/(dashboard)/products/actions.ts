@@ -102,3 +102,65 @@ export async function deleteProductAction(formData: FormData) {
   revalidatePath("/shop");
   redirect(`/admin/products?toast=${encodeURIComponent("Product deleted")}&toastType=info`);
 }
+
+// --- Bulk actions — mainly for cleaning up a large CSV import: e.g. select
+// every row that landed in "Uncategorized" and move them to a real category
+// in one action instead of opening each product individually. Invoked
+// directly from the client's onClick (not a <form action>), since the
+// selection is arbitrary client-side state, not a single form's fields.
+// Returns a result rather than redirecting, so the caller can show which
+// specific rows failed instead of losing that detail on navigation.
+
+export async function bulkUpdateCategoryAction(
+  ids: string[],
+  categoryName: string
+): Promise<{ success: number; failed: string[] }> {
+  let success = 0;
+  const failed: string[] = [];
+  for (const id of ids) {
+    try {
+      await updateProduct(id, { category: categoryName });
+      success++;
+    } catch {
+      failed.push(id);
+    }
+  }
+  revalidatePath("/admin/products");
+  revalidatePath("/shop");
+  return { success, failed };
+}
+
+export async function bulkUpdateConditionAction(
+  ids: string[],
+  condition: "new" | "used"
+): Promise<{ success: number; failed: string[] }> {
+  let success = 0;
+  const failed: string[] = [];
+  for (const id of ids) {
+    try {
+      await updateProduct(id, { condition });
+      success++;
+    } catch {
+      failed.push(id);
+    }
+  }
+  revalidatePath("/admin/products");
+  revalidatePath("/shop");
+  return { success, failed };
+}
+
+export async function bulkDeleteAction(ids: string[]): Promise<{ success: number; failed: string[] }> {
+  let success = 0;
+  const failed: string[] = [];
+  for (const id of ids) {
+    try {
+      await removeProduct(id);
+      success++;
+    } catch {
+      failed.push(id);
+    }
+  }
+  revalidatePath("/admin/products");
+  revalidatePath("/shop");
+  return { success, failed };
+}
