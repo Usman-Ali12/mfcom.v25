@@ -273,7 +273,7 @@ export default function ProductForm({
                   className="w-full h-10 px-3 mt-2 border border-line chamfer-sm text-sm outline-none focus:ring-1 focus:ring-red"
                 />
                 <p className="text-xs text-steel mt-1.5">
-                  Added under "Other" — regroup it anytime from the Categories page.
+                  Added under "Accessories" — regroup it anytime from the Categories page.
                 </p>
               </>
             )}

@@ -36,7 +36,12 @@ async function resolveCategoryName(row: ConfirmImportRow): Promise<string> {
     // "Other" is a reasonable default group for whatever a scraped catalog
     // needed a brand-new category for — the client can move it under
     // Admin > Categories afterward same as any manually-created category.
-    const created = await createCategory({ name: newName, group: "Other" });
+    // "Accessories" rather than "Other" as the default group for a brand
+    // new category — "Other" as a customer-facing group/name is exactly
+    // the genericness this consolidation was meant to get rid of; better
+    // to land somewhere reasonable by default and let the admin move it
+    // under Admin > Categories if it deserves its own group.
+    const created = await createCategory({ name: newName, group: "Accessories" });
     return created.name;
   }
   const category = await getCategoryBySlug(row.categorySlug);

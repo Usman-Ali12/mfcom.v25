@@ -30,7 +30,7 @@ async function resolveCategory(formData: FormData): Promise<string> {
   if (!newName) return "";
   const existing = (await listCategories()).find((c) => c.name.toLowerCase() === newName.toLowerCase());
   if (existing) return existing.name;
-  const created = await createCategory({ name: newName, group: "Other" });
+  const created = await createCategory({ name: newName, group: "Accessories" });
   return created.name;
 }
 
