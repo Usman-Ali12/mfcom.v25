@@ -1,7 +1,9 @@
 import { getAdminUser } from "@/lib/supabase/auth";
 import { listOrders } from "@/lib/orders-store";
+import { checkConditionColumnExists } from "@/lib/admin-store";
 import { Suspense } from "react";
 import ToastFromQuery from "@/components/admin/ToastFromQuery";
+import MigrationWarningBanner from "@/components/admin/MigrationWarningBanner";
 import AdminSidebar from "./AdminSidebar";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -18,6 +20,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     console.error("AdminLayout: failed to load orders for the sidebar badge, showing 0", err);
   }
 
+  let conditionColumnMissing = false;
+  try {
+    conditionColumnMissing = !(await checkConditionColumnExists());
+  } catch (err) {
+    console.error("AdminLayout: schema check failed, assuming fine", err);
+  }
+
   return (
     <div className="min-h-screen flex flex-col sm:flex-row bg-paper text-void">
       <AdminSidebar userEmail={user?.email} pendingOrderCount={pendingOrderCount} />
@@ -27,6 +36,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <Suspense fallback={null}>
           <ToastFromQuery />
         </Suspense>
+        {conditionColumnMissing && <MigrationWarningBanner />}
         <main className="p-4 sm:p-8">{children}</main>
       </div>
     </div>

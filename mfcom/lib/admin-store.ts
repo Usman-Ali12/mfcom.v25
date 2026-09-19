@@ -166,6 +166,23 @@ export async function removeProduct(id: string): Promise<boolean> {
   return (count ?? 0) > 0;
 }
 
+// -----------------------------------------------------------------------------
+// Schema health check — surfaces a pending-migration problem in the UI
+// instead of it manifesting as "my edit silently didn't save." Specifically:
+// with the condition column missing, updateProduct's retry logic (above)
+// drops that field on every single save without telling the admin, so
+// toggling New/Used on a product looks like it "reverts" on its own. A
+// console.warn nobody's looking at doesn't fix that — a banner does.
+export async function checkConditionColumnExists(): Promise<boolean> {
+  const supabase = createServerSupabaseClient();
+  const { error } = await supabase.from("products").select("condition").limit(1);
+  if (!error) return true;
+  // Fail open on anything that isn't specifically this missing-column
+  // signature — an unrelated hiccup here shouldn't falsely tell the admin
+  // their schema is out of date.
+  return missingColumnFromError(error.message) !== "condition";
+}
+
 export function slugify(name: string): string {
   return name
     .toLowerCase()
