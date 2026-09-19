@@ -43,7 +43,17 @@ input:focus-visible,
   outline-offset: 2px;
 }
 
-/* Utility: technical mono label, used for specs / SKUs / prices / countdowns */
+/* Ambient glow behind a category tile's product photo — a slow, subtle
+   pulse using the brand red, not attention-grabbing motion. One
+   consistent treatment repeated across every tile reads as a designed
+   detail, not decoration bolted on. */
+@keyframes tile-glow {
+  0%, 100% { opacity: 0.12; transform: scale(0.92); }
+  50% { opacity: 0.22; transform: scale(1.05); }
+}
+.category-tile-glow {
+  animation: tile-glow 5s ease-in-out infinite;
+}
 .mono-label {
   font-family: var(--font-mono);
   letter-spacing: 0.04em;

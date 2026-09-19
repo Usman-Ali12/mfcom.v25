@@ -155,27 +155,43 @@ export default async function HomePage() {
                 <StaggerItem key={group.group}>
                   <Link
                     href={firstInGroup ? `/category/${firstInGroup.slug}` : "/shop"}
-                    className="group block bg-white dark:bg-graphite border border-line dark:border-white/10 chamfer overflow-hidden hover:border-void dark:hover:border-white/30 transition-colors"
+                    className="group block bg-white dark:bg-graphite border border-line dark:border-white/10 chamfer overflow-hidden hover:border-void dark:hover:border-white/30 hover:shadow-lg transition-all"
                   >
                     <div className="relative aspect-square bg-paper dark:bg-void/40 overflow-hidden">
                       {image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={image}
-                          alt=""
-                          className="w-full h-full object-contain p-3 transition-transform duration-500 ease-snap group-hover:scale-[1.06]"
-                        />
+                        <>
+                          {/* Ambient glow, not a scaling photo — the photo
+                              itself never moves or scales, so it can't read
+                              as "zooming in"; the tile still feels alive via
+                              the light behind it. */}
+                          <div
+                            aria-hidden
+                            className="category-tile-glow absolute inset-0 m-auto w-2/3 h-2/3 rounded-full bg-red blur-2xl"
+                          />
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={image}
+                            alt=""
+                            className="relative w-full h-full object-contain p-8 sm:p-10"
+                          />
+                        </>
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <span className="mono-label text-[10px] text-steel">{group.items.length} lines</span>
                         </div>
                       )}
                     </div>
-                    <div className="p-4">
-                      <p className="font-medium text-sm mb-1 group-hover:text-red transition-colors">
-                        {group.group}
-                      </p>
-                      <p className="text-xs text-steel line-clamp-1">{group.items.slice(0, 2).join(", ")}…</p>
+                    <div className="p-4 flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm mb-1 group-hover:text-red transition-colors">
+                          {group.group}
+                        </p>
+                        <p className="text-xs text-steel line-clamp-1">{group.items.slice(0, 2).join(", ")}…</p>
+                      </div>
+                      <ArrowUpRight
+                        size={16}
+                        className="shrink-0 text-steel opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-red transition-all"
+                      />
                     </div>
                   </Link>
                 </StaggerItem>
