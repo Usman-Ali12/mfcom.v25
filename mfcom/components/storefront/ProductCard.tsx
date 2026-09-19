@@ -38,7 +38,7 @@ export default function ProductCard({ product }: { product: Product }) {
           alt={product.name}
           fill
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-          className="object-cover transition-transform duration-500 ease-snap group-hover:scale-[1.045]"
+          className="object-contain transition-transform duration-500 ease-snap group-hover:scale-[1.045]"
         />
 
         {/* Badges */}

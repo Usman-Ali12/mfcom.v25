@@ -63,10 +63,19 @@ input:focus-visible,
 
 /* Thin scrollbars for the mega-menu / builder panels */
 .thin-scroll::-webkit-scrollbar {
+  /* width controls a VERTICAL scrollbar; height controls a HORIZONTAL one
+     (the carousels use overflow-x-auto) — only width was set here, so
+     every horizontal scrollbar fell back to the browser's thick default
+     instead of ever picking up the "thin" styling below. */
   width: 6px;
+  height: 6px;
 }
 .thin-scroll::-webkit-scrollbar-thumb {
   background: #6E6E73;
+  border-radius: 999px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 /* Hides the preloader instantly via plain CSS, before hydration, when

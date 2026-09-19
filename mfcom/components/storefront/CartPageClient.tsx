@@ -38,7 +38,7 @@ export default function CartPageClient({ whatsappNumber }: { whatsappNumber: str
             <div key={product.id} className="flex gap-4 py-5">
               <Link href={`/product/${product.slug}`} className="w-24 h-24 shrink-0 bg-paper dark:bg-void chamfer-sm overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                <img src={product.image} alt={product.name} className="w-full h-full object-contain" />
               </Link>
 
               <div className="flex-1 min-w-0">

@@ -54,7 +54,7 @@ export default function ProductPurchasePanel({ product, whatsappNumber }: { prod
                   fill
                   priority
                   sizes="(max-width: 1024px) 100vw, 50vw"
-                  className="object-cover"
+                  className="object-contain"
                 />
               </motion.div>
             </AnimatePresence>
@@ -78,7 +78,7 @@ export default function ProductPurchasePanel({ product, whatsappNumber }: { prod
                   alt={`${product.name} — view ${i + 1}`}
                   fill
                   sizes="120px"
-                  className="object-cover"
+                  className="object-contain"
                 />
               </button>
             ))}

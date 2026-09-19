@@ -111,7 +111,7 @@ export default function SearchBox({
                     className="flex items-center gap-3 px-4 py-2.5 hover:bg-paper dark:hover:bg-white/5 transition-colors"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={r.image} alt="" className="w-10 h-10 object-cover chamfer-sm bg-paper shrink-0" />
+                    <img src={r.image} alt="" className="w-10 h-10 object-contain chamfer-sm bg-paper shrink-0" />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm truncate dark:text-paper">{r.name}</p>
                       <p className="text-xs text-steel">{r.brand}</p>
