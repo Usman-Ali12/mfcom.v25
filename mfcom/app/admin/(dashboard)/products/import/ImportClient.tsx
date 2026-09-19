@@ -16,7 +16,7 @@ type Row = {
   price: number | null;
   currency: string;
   description: string;
-  imageUrl: string;
+  images: string[];
   enhanced: boolean;
   include: boolean;
   // "" means unmatched / needs a manual pick. A non-empty value is either
@@ -65,7 +65,7 @@ export default function ImportClient() {
           price: d.price,
           currency: d.currency,
           description: d.description,
-          imageUrl: d.imageUrl,
+          images: d.imageUrl ? [d.imageUrl] : [],
           enhanced: d.enhanced,
           include: true,
           categorySlug: d.categorySlugGuess || "",
@@ -83,11 +83,15 @@ export default function ImportClient() {
     setRows((prev) => prev.map((r, i) => (i === index ? { ...r, ...patch } : r)));
   }
 
-  // A row's photo is just a URL on the draft — from the internet, from a
-  // device upload, or the cleaned-up WhatsApp original. Swapping it never
-  // touches Supabase until Import is clicked; uploading a replacement file
-  // goes through the same /api/upload every other image in the admin uses.
-  async function replaceRowImageFromFile(index: number, file: File) {
+  const MAX_IMAGES = 4;
+
+  // A row's photos are just URLs on the draft — from the internet, from a
+  // device upload, or the cleaned-up WhatsApp original. Nothing touches
+  // Supabase's product table until Import is clicked; uploading here goes
+  // through the same /api/upload every other image in the admin uses.
+  // Capped at a few per product, same as the manual product form — not
+  // meant to be a full gallery manager for 109 rows at once.
+  async function addRowImageFromFile(index: number, file: File) {
     setRowUploadingIndex(index);
     try {
       const formData = new FormData();
@@ -95,12 +99,18 @@ export default function ImportClient() {
       const res = await fetch("/api/upload", { method: "POST", body: formData });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Upload failed");
-      updateRow(index, { imageUrl: data.url, enhanced: true });
+      setRows((prev) =>
+        prev.map((r, i) => (i === index && r.images.length < MAX_IMAGES ? { ...r, images: [...r.images, data.url] } : r))
+      );
     } catch (e) {
       alert(e instanceof Error ? e.message : "Couldn't upload that photo");
     } finally {
       setRowUploadingIndex(null);
     }
+  }
+
+  function removeRowImage(index: number, url: string) {
+    setRows((prev) => prev.map((r, i) => (i === index ? { ...r, images: r.images.filter((u) => u !== url) } : r)));
   }
 
   function categoryOptionsFor(row: Row): SelectOption[] {
@@ -141,7 +151,7 @@ export default function ImportClient() {
         price: r.price ?? 0,
         currency: r.currency,
         description: r.description,
-        imageUrl: r.imageUrl,
+        images: r.images,
       }));
     const res = await confirmCatalogImportAction(payload);
     setResult(res);
@@ -262,56 +272,77 @@ export default function ImportClient() {
                   />
                 </td>
                 <td className="p-3 align-top">
-                  <div className="relative w-16 h-16 group">
-                    {row.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={row.imageUrl}
-                        alt=""
-                        onClick={() => setZoomUrl(row.imageUrl)}
-                        className="w-16 h-16 object-cover chamfer-sm bg-paper cursor-zoom-in border border-line"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 bg-paper chamfer-sm border border-dashed border-line" />
-                    )}
-                    {row.imageUrl && (
-                      <button
-                        type="button"
-                        onClick={() => setZoomUrl(row.imageUrl)}
-                        className="absolute inset-0 flex items-center justify-center bg-void/0 group-hover:bg-void/40 opacity-0 group-hover:opacity-100 transition-all"
-                      >
-                        <ZoomIn size={16} className="text-white" />
-                      </button>
-                    )}
-                    {rowUploadingIndex === i && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-white/80">
-                        <Loader2 size={16} className="animate-spin text-red" />
+                  <div className="flex gap-1.5 flex-wrap max-w-[144px]">
+                    {row.images.map((url, imgIdx) => (
+                      <div key={url} className="relative w-16 h-16 group shrink-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={url}
+                          alt=""
+                          onClick={() => setZoomUrl(url)}
+                          className="w-16 h-16 object-cover chamfer-sm bg-paper cursor-zoom-in border border-line"
+                        />
+                        {imgIdx === 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setZoomUrl(url)}
+                            className="absolute inset-0 flex items-center justify-center bg-void/0 group-hover:bg-void/40 opacity-0 group-hover:opacity-100 transition-all"
+                          >
+                            <ZoomIn size={16} className="text-white" />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeRowImage(i, url)}
+                          aria-label="Remove photo"
+                          className="absolute top-0.5 right-0.5 w-4 h-4 flex items-center justify-center bg-void/70 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={10} />
+                        </button>
+                        {rowUploadingIndex === i && imgIdx === row.images.length - 1 && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-white/80">
+                            <Loader2 size={16} className="animate-spin text-red" />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    {row.images.length === 0 && (
+                      <div className="relative w-16 h-16 shrink-0 bg-paper chamfer-sm border border-dashed border-line">
+                        {rowUploadingIndex === i && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <Loader2 size={16} className="animate-spin text-red" />
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
-                  {!row.enhanced && row.imageUrl && (
+                  {!row.enhanced && row.images.length > 0 && (
                     <p className="text-[10px] text-steel mt-1 leading-tight">not cleaned up</p>
                   )}
                   <div className="flex items-center gap-2 mt-1.5">
-                    <button
-                      type="button"
-                      title="Upload from your device"
-                      onClick={() => {
-                        rowFileTargetIndex.current = i;
-                        rowFileInputRef.current?.click();
-                      }}
-                      className="text-steel hover:text-red transition-colors"
-                    >
-                      <ImagePlus size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      title="Paste an image URL"
-                      onClick={() => setUrlEditIndex(urlEditIndex === i ? null : i)}
-                      className="text-steel hover:text-red transition-colors"
-                    >
-                      <Link2 size={14} />
-                    </button>
+                    {row.images.length < MAX_IMAGES && (
+                      <button
+                        type="button"
+                        title={row.images.length === 0 ? "Upload from your device" : "Add another photo"}
+                        onClick={() => {
+                          rowFileTargetIndex.current = i;
+                          rowFileInputRef.current?.click();
+                        }}
+                        className="text-steel hover:text-red transition-colors"
+                      >
+                        <ImagePlus size={14} />
+                      </button>
+                    )}
+                    {row.images.length < MAX_IMAGES && (
+                      <button
+                        type="button"
+                        title="Paste an image URL"
+                        onClick={() => setUrlEditIndex(urlEditIndex === i ? null : i)}
+                        className="text-steel hover:text-red transition-colors"
+                      >
+                        <Link2 size={14} />
+                      </button>
+                    )}
                   </div>
                   {urlEditIndex === i && (
                     <input
@@ -321,7 +352,9 @@ export default function ImportClient() {
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
                           const url = (e.target as HTMLInputElement).value.trim();
-                          if (url) updateRow(i, { imageUrl: url, enhanced: false });
+                          if (url && row.images.length < MAX_IMAGES) {
+                            setRows((prev) => prev.map((r, ri) => (ri === i ? { ...r, images: [...r.images, url] } : r)));
+                          }
                           setUrlEditIndex(null);
                         } else if (e.key === "Escape") {
                           setUrlEditIndex(null);
@@ -435,7 +468,7 @@ export default function ImportClient() {
         onChange={(e) => {
           const file = e.target.files?.[0];
           const idx = rowFileTargetIndex.current;
-          if (file && idx !== null) replaceRowImageFromFile(idx, file);
+          if (file && idx !== null) addRowImageFromFile(idx, file);
           e.target.value = "";
         }}
       />

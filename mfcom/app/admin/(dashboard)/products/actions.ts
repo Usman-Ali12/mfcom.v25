@@ -38,7 +38,11 @@ async function readProductForm(formData: FormData): Promise<Omit<Product, "id">>
   const name = String(formData.get("name") || "");
   const price = Number(formData.get("price") || 0);
   const previousPriceRaw = String(formData.get("previousPrice") || "");
-  const image = String(formData.get("image") || "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=800&q=80");
+  const galleryRaw = (formData.getAll("gallery") as string[]).map((u) => u.trim()).filter(Boolean);
+  const gallery = galleryRaw.length
+    ? galleryRaw.slice(0, 4)
+    : ["https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=800&q=80"];
+  const image = gallery[0];
 
   const specLabels = formData.getAll("specLabel") as string[];
   const specValues = formData.getAll("specValue") as string[];
@@ -65,7 +69,7 @@ async function readProductForm(formData: FormData): Promise<Omit<Product, "id">>
     rating: Number(formData.get("rating") || 4.5),
     reviewCount: Number(formData.get("reviewCount") || 0),
     image,
-    gallery: [image],
+    gallery,
     specifications,
     warranty: String(formData.get("warranty") || "1-year manufacturer warranty"),
     badge: (formData.get("badge") as Product["badge"]) || undefined,

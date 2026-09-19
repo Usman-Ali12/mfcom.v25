@@ -33,7 +33,11 @@ export default function ProductForm({
   const [specs, setSpecs] = useState<{ label: string; value: string }[]>(
     initial?.specifications?.length ? initial.specifications : [{ label: "", value: "" }]
   );
-  const [imageUrl, setImageUrl] = useState(initial?.image || "");
+  const [gallery, setGallery] = useState<string[]>(
+    initial?.gallery?.length ? initial.gallery : initial?.image ? [initial.image] : []
+  );
+  const MAX_GALLERY = 4;
+  const [manualUrl, setManualUrl] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
   // Local, additive copy of mediaItems — newly uploaded images get pushed
   // in here immediately so they show up in the picker without a full page
@@ -138,12 +142,32 @@ export default function ProductForm({
     return new File([finalBlob], file.name.replace(/\.[^.]+$/, "") + "-clean.jpg", { type: "image/jpeg" });
   }
 
+  function addToGallery(url: string) {
+    setGallery((prev) => {
+      if (prev.includes(url)) return prev;
+      if (prev.length >= MAX_GALLERY) {
+        setUploadError(`Photos are capped at ${MAX_GALLERY} per product — remove one first.`);
+        return prev;
+      }
+      return [...prev, url];
+    });
+  }
+
+  function removeFromGallery(url: string) {
+    setGallery((prev) => prev.filter((u) => u !== url));
+  }
+
   async function uploadFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
+    if (gallery.length >= MAX_GALLERY) {
+      setUploadError(`Photos are capped at ${MAX_GALLERY} per product — remove one first.`);
+      return;
+    }
     setUploading(true);
     setUploadError(null);
     try {
       for (const file of Array.from(files)) {
+        if (gallery.length >= MAX_GALLERY) break;
         if (!file.type.startsWith("image/")) continue;
         const toUpload = removeBg ? await processFileForUpload(file) : file;
         const formData = new FormData();
@@ -155,7 +179,7 @@ export default function ProductForm({
         }
         const record: MediaItem = await res.json();
         setLibrary((prev) => [record, ...prev]);
-        setImageUrl(record.url);
+        addToGallery(record.url);
       }
     } catch (e) {
       setUploadError(e instanceof Error ? e.message : "Upload failed");
@@ -459,7 +483,7 @@ export default function ProductForm({
                 key={item.id}
                 type="button"
                 onClick={() => {
-                  setImageUrl(item.url);
+                  addToGallery(item.url);
                   setPickerOpen(false);
                 }}
                 className="aspect-square chamfer-sm overflow-hidden border-2 border-transparent hover:border-red transition-colors"
@@ -471,29 +495,64 @@ export default function ProductForm({
           </div>
         )}
 
-        <div className="flex gap-4 items-start">
-          {imageUrl && (
-            <div className="w-20 h-20 shrink-0 chamfer-sm overflow-hidden bg-paper border border-line">
+        {/* A small gallery, not a full media manager — first photo is the
+            listing's main image everywhere (card, search, JSON-LD); the
+            rest show as the thumbnail strip on the product page. Capped at
+            a few, on purpose: for a shop this size, 3-4 real photos beat a
+            dozen near-duplicates nobody will scroll through. */}
+        <div className="flex flex-wrap gap-3 mb-3">
+          {gallery.map((url, i) => (
+            <div key={url} className="relative w-20 h-20 shrink-0 chamfer-sm overflow-hidden bg-paper border border-line group">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imageUrl} alt="" className="w-full h-full object-cover" onError={(e) => (e.currentTarget.style.opacity = "0.2")} />
+              <img src={url} alt="" className="w-full h-full object-cover" onError={(e) => (e.currentTarget.style.opacity = "0.2")} />
+              {i === 0 && (
+                <span className="absolute bottom-0 inset-x-0 bg-void/80 text-white text-[9px] text-center py-0.5">
+                  Main
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => removeFromGallery(url)}
+                aria-label="Remove photo"
+                className="absolute top-0.5 right-0.5 w-5 h-5 flex items-center justify-center bg-void/70 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <X size={12} />
+              </button>
+              <input type="hidden" name="gallery" value={url} />
+            </div>
+          ))}
+          {gallery.length < MAX_GALLERY && (
+            <div className="w-20 h-20 shrink-0 chamfer-sm border border-dashed border-line flex items-center justify-center text-[10px] text-steel text-center px-1">
+              {MAX_GALLERY - gallery.length} more allowed
             </div>
           )}
-          <div className="flex-1">
-            <label className="text-xs font-medium block mb-1.5">Image URL</label>
-            <input
-              name="image"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="Upload above, or paste any image URL directly"
-              className="w-full h-10 px-3 border border-line chamfer-sm text-sm outline-none focus:ring-1 focus:ring-red"
-            />
-            <p className="text-xs text-steel mt-2">
-              {library.length > 0
-                ? "Upload a new image, pick one already uploaded above, or paste any image URL."
-                : "Upload an image above, or paste any image URL directly."}
-            </p>
-          </div>
         </div>
+
+        <div className="flex gap-2">
+          <input
+            value={manualUrl}
+            onChange={(e) => setManualUrl(e.target.value)}
+            placeholder="Or paste an image URL"
+            className="flex-1 h-9 px-3 border border-line chamfer-sm text-sm outline-none focus:ring-1 focus:ring-red"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              if (manualUrl.trim()) {
+                addToGallery(manualUrl.trim());
+                setManualUrl("");
+              }
+            }}
+            className="h-9 px-3 border border-line chamfer-sm text-xs font-medium hover:border-void transition-colors shrink-0"
+          >
+            Add
+          </button>
+        </div>
+        <p className="text-xs text-steel mt-2">
+          {gallery.length === 0
+            ? "Upload above, pick a previously uploaded photo, or paste a URL — the first photo added is the main listing image."
+            : "Drag isn't wired up — to reorder, remove and re-add in the order you want. The first photo is always the main image."}
+        </p>
       </section>
 
       {/* Specifications */}

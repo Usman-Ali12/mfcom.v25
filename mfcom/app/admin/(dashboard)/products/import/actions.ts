@@ -15,7 +15,7 @@ export type ConfirmImportRow = {
   price: number;
   currency: string;
   description: string;
-  imageUrl: string;
+  images: string[];
 };
 
 async function resolveBrandName(name: string): Promise<string> {
@@ -78,8 +78,8 @@ export async function confirmCatalogImportAction(
         stockCount: 10,
         rating: 0,
         reviewCount: 0,
-        image: row.imageUrl,
-        gallery: row.imageUrl ? [row.imageUrl] : [],
+        image: row.images[0] || "",
+        gallery: row.images,
         specifications: [],
         warranty: "1-year manufacturer warranty",
         condition: row.condition,
