@@ -69,14 +69,19 @@ export async function confirmCatalogImportAction(
     try {
       const [brand, category] = await Promise.all([resolveBrandName(row.brand), resolveCategoryName(row)]);
 
+      const description = row.description || row.name;
       const input: Omit<Product, "id"> = {
         name: row.name,
         slug: slugify(row.name),
         sku: makeSku(row.name, i),
         brand,
         category,
-        shortSpec: "",
-        description: row.description || row.name,
+        // Was always blank — left every imported card with a visible empty
+        // line where a spec/description snippet belongs (ProductCard has
+        // a description fallback now too, but storing a real value here
+        // means the actual data is meaningful, not just the display).
+        shortSpec: description.slice(0, 70),
+        description,
         price: row.price,
         currency: (row.currency as Product["currency"]) || "PKR",
         stock: "in-stock",

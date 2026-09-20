@@ -97,7 +97,9 @@ export default function ProductCard({ product }: { product: Product }) {
             {product.name}
           </h3>
         </Link>
-        <p className="text-xs text-steel mb-3 line-clamp-1">{product.shortSpec}</p>
+        <p className="text-xs text-steel mb-3 line-clamp-1">
+          {product.shortSpec || product.description.slice(0, 70)}
+        </p>
 
         {product.reviewCount > 0 && (
           <div className="flex items-center gap-1 mb-3">

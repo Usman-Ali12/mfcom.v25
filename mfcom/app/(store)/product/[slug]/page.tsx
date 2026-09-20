@@ -55,6 +55,21 @@ export default async function ProductPage({ params }: { params: { slug: string }
   const related = allProducts.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 4);
   const settings = await getSettings();
 
+  // Imported products never got real spec rows filled in (name/price/photo
+  // only) — the Specifications section was rendering as a heading with
+  // nothing under it on every one of them. Falling back to what we
+  // actually do know about the product rather than showing an empty
+  // section; anything admin-entered still takes priority.
+  const specs =
+    product.specifications.length > 0
+      ? product.specifications
+      : [
+          { label: "Brand", value: product.brand },
+          { label: "Category", value: product.category },
+          { label: "Condition", value: product.condition === "used" ? "Used" : "Brand new" },
+          { label: "Warranty", value: product.warranty || "Not specified" },
+        ].filter((s) => s.value);
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -127,7 +142,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
       <section className="mt-16 max-w-3xl">
         <h2 className="font-display text-xl font-semibold mb-5">Specifications</h2>
         <dl className="border-t border-line dark:border-white/10">
-          {product.specifications.map((spec) => (
+          {specs.map((spec) => (
             <div
               key={spec.label}
               className="grid grid-cols-2 gap-4 py-3.5 border-b border-line dark:border-white/10 text-sm dark:text-paper/90"
