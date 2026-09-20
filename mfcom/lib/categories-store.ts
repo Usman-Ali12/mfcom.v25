@@ -34,6 +34,10 @@ export async function listCategoryGroups(): Promise<{ group: string; items: stri
   const all = await listCategories();
   const groups = new Map<string, string[]>();
   for (const c of all) {
+    // A category with a blank name or group is junk data (e.g. an
+    // in-progress admin edit that got saved empty) — never worth its own
+    // ghost tile with nothing on it in the storefront nav.
+    if (!c.name?.trim() || !c.group?.trim()) continue;
     if (!groups.has(c.group)) groups.set(c.group, []);
     groups.get(c.group)!.push(c.name);
   }

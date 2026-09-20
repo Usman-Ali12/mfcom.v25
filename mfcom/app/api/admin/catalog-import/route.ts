@@ -46,14 +46,17 @@ export async function POST(request: NextRequest) {
     drafts.map(async (d) => {
       let imageUrl = "";
       let enhanced = false;
+      let bgRemoved = false;
       if (d.imageDataUrl) {
         try {
           const rawFile = dataUrlToFile(d.imageDataUrl, `catalog-${d.sourceIndex}.jpg`);
-          // Auto-orient/pad/sharpen the real photo (wsrv.nl) — falls back
-          // to the untouched original if that service is unreachable, so
-          // a hiccup there never costs the product its photo.
-          const { file: finalFile, enhanced: didEnhance } = await enhanceCatalogPhoto(rawFile);
+          // Real background removal first (remove.bg, composited onto
+          // white); falls back to wsrv.nl padding, then the untouched
+          // original — see enhanceCatalogPhoto for why it's layered this
+          // way. A hiccup at any layer never costs the product its photo.
+          const { file: finalFile, enhanced: didEnhance, bgRemoved: didRemoveBg } = await enhanceCatalogPhoto(rawFile);
           enhanced = didEnhance;
+          bgRemoved = didRemoveBg;
           const media = await uploadMedia(finalFile);
           imageUrl = media.url;
         } catch {
@@ -73,6 +76,7 @@ export async function POST(request: NextRequest) {
         description: d.description,
         imageUrl,
         enhanced,
+        bgRemoved,
         include: true,
       };
     })

@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Upload, Loader2, AlertTriangle, CheckCircle2, X, Link2, ImagePlus, ZoomIn } from "lucide-react";
 import Select, { type SelectOption } from "@/components/storefront/Select";
+import { padCutoutOntoWhiteSquare } from "@/lib/image-composite";
 import { confirmCatalogImportAction, type ConfirmImportRow } from "./actions";
 
 type ApiCategory = { name: string; slug: string; group: string };
@@ -18,6 +19,7 @@ type Row = {
   description: string;
   images: string[];
   enhanced: boolean;
+  bgRemoved: boolean;
   include: boolean;
   // "" means unmatched / needs a manual pick. A non-empty value is either
   // an existing category slug, or — when isNewCategory is true — the raw
@@ -67,6 +69,7 @@ export default function ImportClient() {
           description: d.description,
           images: d.imageUrl ? [d.imageUrl] : [],
           enhanced: d.enhanced,
+          bgRemoved: d.bgRemoved,
           include: true,
           categorySlug: d.categorySlugGuess || "",
           isNewCategory: false,
@@ -94,8 +97,25 @@ export default function ImportClient() {
   async function addRowImageFromFile(index: number, file: File) {
     setRowUploadingIndex(index);
     try {
+      // Same white-background treatment as the rest of the catalog import,
+      // so a manually-added replacement photo doesn't stick out as the
+      // one item shot on someone's desk instead of a clean white square.
+      let toUpload: File = file;
+      try {
+        const bgFormData = new FormData();
+        bgFormData.append("file", file);
+        const bgRes = await fetch("/api/admin/remove-background", { method: "POST", body: bgFormData });
+        if (bgRes.ok) {
+          const cutout = await bgRes.blob();
+          const padded = await padCutoutOntoWhiteSquare(cutout);
+          toUpload = new File([padded], file.name.replace(/\.[^.]+$/, "") + "-clean.jpg", { type: "image/jpeg" });
+        }
+      } catch {
+        // Background removal is a nice-to-have here — fall through to
+        // uploading the original photo rather than blocking the add.
+      }
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", toUpload);
       const res = await fetch("/api/upload", { method: "POST", body: formData });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Upload failed");
@@ -318,6 +338,9 @@ export default function ImportClient() {
                   </div>
                   {!row.enhanced && row.images.length > 0 && (
                     <p className="text-[10px] text-steel mt-1 leading-tight">not cleaned up</p>
+                  )}
+                  {row.enhanced && !row.bgRemoved && (
+                    <p className="text-[10px] text-amber-700 mt-1 leading-tight">bg not removed</p>
                   )}
                   <div className="flex items-center gap-2 mt-1.5">
                     {row.images.length < MAX_IMAGES && (

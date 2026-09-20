@@ -214,24 +214,53 @@ export function dataUrlToFile(dataUrl: string, filename: string): File {
 }
 
 // -----------------------------------------------------------------------------
-// Photo cleanup for imported catalog images — NOT background removal.
+// Photo cleanup for imported catalog images.
 //
-// These are real WhatsApp catalog photos, often a collage of a few angles
-// with a logo/text overlay baked in by whoever made the listing — there's
-// no single clean "subject" to cut out the way there is for a one-off
-// product photo, so remove.bg's approach doesn't fit here. What actually
-// helps: auto-orient, pad onto a consistent white square, sharpen, and
-// color-correct — the same photo, just presentable. That's exactly what
-// wsrv.nl (images.weserv.nl) does as a free image proxy — no API key, no
-// signup, no request quota to run out of.
+// Two layers, tried in order:
+// 1. Real background removal (remove.bg, bg_color=ffffff so it composites
+//    straight onto solid white server-side) — actually replaces whatever
+//    the photo was shot against (a black desk, a patterned bedsheet,
+//    whatever) with a genuine white background. This is what makes a grid
+//    of WhatsApp photos look like one catalog instead of a pile of
+//    random snapshots.
+// 2. wsrv.nl pad/sharpen (no API key, no quota) as a fallback — this
+//    doesn't remove an existing background, it can only pad letterbox
+//    margins white, but it's better than nothing when remove.bg is
+//    unavailable or its free monthly quota (50 images) runs out mid-import
+//    on a catalog this size.
+// Falls back to the untouched original only if both fail — authenticity
+// is never lost, only the polish is best-effort.
 //
-// wsrv.nl needs a fetchable https URL, not raw bytes, so this is a
-// three-step round trip: stash the raw decoded photo in Storage just long
-// enough to hand its URL to wsrv.nl, fetch back the enhanced version, then
-// delete the temp copy — only the enhanced photo becomes a permanent media
-// library entry, so a 109-photo import doesn't leave 109 redundant
-// "-raw" originals cluttering Admin > Media.
+// wsrv.nl needs a fetchable https URL, not raw bytes, so this still stashes
+// the raw decoded photo in Storage just long enough to hand its URL over,
+// then deletes the temp copy — only the final cleaned photo becomes a
+// permanent media library entry.
 // -----------------------------------------------------------------------------
+
+async function removeBgWhite(imgFile: File): Promise<File | null> {
+  const apiKey = process.env.REMOVEBG_API_KEY;
+  if (!apiKey) return null;
+
+  const form = new FormData();
+  form.append("image_file", imgFile);
+  form.append("size", "auto");
+  form.append("bg_color", "FFFFFF");
+  form.append("format", "jpg");
+
+  try {
+    const res = await fetch("https://api.remove.bg/v1.0/removebg", {
+      method: "POST",
+      headers: { "X-Api-Key": apiKey },
+      body: form,
+    });
+    if (!res.ok) return null; // quota used up, or a transient failure — fall through to wsrv.nl
+    const bytes = await res.arrayBuffer();
+    const cleanName = imgFile.name.replace(/\.[^.]+$/, "") + "-clean.jpg";
+    return new File([bytes], cleanName, { type: "image/jpeg" });
+  } catch {
+    return null;
+  }
+}
 
 function wsrvEnhanceUrl(publicUrl: string): string {
   const params = new URLSearchParams({
@@ -248,9 +277,7 @@ function wsrvEnhanceUrl(publicUrl: string): string {
   return `https://wsrv.nl/?${params.toString()}`;
 }
 
-export async function enhanceCatalogPhoto(
-  imgFile: File
-): Promise<{ file: File; enhanced: boolean }> {
+async function wsrvPad(imgFile: File): Promise<File | null> {
   const supabase = createServerSupabaseClient();
   const BUCKET = "media";
   const tempPath = `tmp/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${imgFile.name}`;
@@ -263,21 +290,27 @@ export async function enhanceCatalogPhoto(
     if (uploadError) throw uploadError;
 
     const { data: publicUrlData } = supabase.storage.from(BUCKET).getPublicUrl(tempPath);
-
     const enhanceRes = await fetch(wsrvEnhanceUrl(publicUrlData.publicUrl));
     if (!enhanceRes.ok) throw new Error(`wsrv.nl returned ${enhanceRes.status}`);
     const enhancedBytes = await enhanceRes.arrayBuffer();
 
-    // Best-effort cleanup — a leftover temp file is harmless clutter, not
-    // worth failing the whole import over.
     supabase.storage.from(BUCKET).remove([tempPath]).catch(() => {});
 
-    const cleanName = imgFile.name.replace(/\.[^.]+$/, "") + "-clean.jpg";
-    return { file: new File([enhancedBytes], cleanName, { type: "image/jpeg" }), enhanced: true };
+    const cleanName = imgFile.name.replace(/\.[^.]+$/, "") + "-padded.jpg";
+    return new File([enhancedBytes], cleanName, { type: "image/jpeg" });
   } catch {
-    // wsrv.nl unreachable, or storage hiccup — fall back to the original
-    // photo rather than losing the product's image entirely. Authenticity
-    // preserved either way; only the polish is best-effort.
-    return { file: imgFile, enhanced: false };
+    return null;
   }
+}
+
+export async function enhanceCatalogPhoto(
+  imgFile: File
+): Promise<{ file: File; enhanced: boolean; bgRemoved: boolean }> {
+  const bgRemoved = await removeBgWhite(imgFile);
+  if (bgRemoved) return { file: bgRemoved, enhanced: true, bgRemoved: true };
+
+  const padded = await wsrvPad(imgFile);
+  if (padded) return { file: padded, enhanced: true, bgRemoved: false };
+
+  return { file: imgFile, enhanced: false, bgRemoved: false };
 }
