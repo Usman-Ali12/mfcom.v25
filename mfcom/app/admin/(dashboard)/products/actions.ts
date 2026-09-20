@@ -2,9 +2,10 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { createProduct, updateProduct, removeProduct, slugify } from "@/lib/admin-store";
+import { createProduct, updateProduct, removeProduct, listProducts, slugify } from "@/lib/admin-store";
 import { createBrand, getBrandByName } from "@/lib/brands-store";
 import { createCategory, listCategories } from "@/lib/categories-store";
+import { enrichProductDetails } from "@/lib/ai-enrich";
 import type { Product } from "@/lib/mock-data";
 
 const NEW_VALUE = "__new__";
@@ -167,4 +168,49 @@ export async function bulkDeleteAction(ids: string[]): Promise<{ success: number
   revalidatePath("/admin/products");
   revalidatePath("/shop");
   return { success, failed };
+}
+
+// AI-fills description/specs for products that still only have a name and
+// a price — the main backlog from a bulk CSV import. Only touches products
+// that look genuinely unfilled (blank/name-only shortSpec, no real
+// description) so it can't be used to clobber something an admin already
+// wrote by hand; re-running it on an already-filled product is a safe
+// no-op. Writes straight to the DB rather than a review screen — same as
+// the other bulk actions, and every field it touches is still fully
+// editable afterward via the normal edit form, nothing is final.
+export async function bulkEnrichAction(ids: string[]): Promise<{ success: number; skipped: number; failed: string[] }> {
+  const all = await listProducts();
+  const targets = all.filter((p) => ids.includes(p.id));
+
+  let success = 0;
+  let skipped = 0;
+  const failed: string[] = [];
+
+  for (const product of targets) {
+    const looksUnfilled = !product.shortSpec && (!product.description || product.description === product.name);
+    if (!looksUnfilled) {
+      skipped++;
+      continue;
+    }
+    try {
+      const enriched = await enrichProductDetails({
+        name: product.name,
+        brand: product.brand,
+        category: product.category,
+        condition: product.condition,
+      });
+      await updateProduct(product.id, {
+        shortSpec: enriched.shortSpec || product.shortSpec,
+        description: enriched.description || product.description,
+        specifications: enriched.specifications.length > 0 ? enriched.specifications : product.specifications,
+      });
+      success++;
+    } catch {
+      failed.push(product.id);
+    }
+  }
+
+  revalidatePath("/admin/products");
+  revalidatePath("/shop");
+  return { success, skipped, failed };
 }

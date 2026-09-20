@@ -60,6 +60,8 @@ export default function ProductForm({
   const [shortSpec, setShortSpec] = useState(initial?.shortSpec || "");
   const [description, setDescription] = useState(initial?.description || "");
   const [autoFilled, setAutoFilled] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   // Generates a description + short spec line from whatever's already
   // filled in — name, brand, category, and any specification rows. Not a
@@ -104,6 +106,46 @@ export default function ProductForm({
 
     setDescription(`${opening}${specSentence}${closing}`);
     setAutoFilled(true);
+  }
+
+  // The template above only works with what's already typed in — for the
+  // common "just a name and a price, nothing else" case (most of a bulk
+  // CSV import), there's nothing for it to work from. This calls Gemini's
+  // free-tier API instead, given just the name/brand/category, and drops
+  // the result into these same editable fields — nothing is saved until
+  // the form itself is submitted, and every field stays fully editable
+  // before and after.
+  async function aiAutoFill() {
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const brandLabel = brand === NEW_VALUE ? newBrandName : brand;
+      const categoryLabel = category === NEW_VALUE ? newCategoryName : category;
+      const res = await fetch("/api/admin/ai-enrich", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, brand: brandLabel, category: categoryLabel, condition }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "AI auto-fill failed");
+      if (data.shortSpec && !shortSpec) setShortSpec(data.shortSpec);
+      if (data.description) setDescription(data.description);
+      if (Array.isArray(data.specifications) && data.specifications.length > 0) {
+        setSpecs((s) => {
+          const existingLabels = new Set(s.filter((x) => x.label).map((x) => x.label.toLowerCase()));
+          const additions = data.specifications.filter(
+            (spec: { label: string }) => !existingLabels.has(spec.label.toLowerCase())
+          );
+          const withoutBlankRow = s.filter((x) => x.label || x.value);
+          return [...withoutBlankRow, ...additions];
+        });
+      }
+      setAutoFilled(true);
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : "AI auto-fill failed");
+    } finally {
+      setAiLoading(false);
+    }
   }
 
   function addSpec() {
@@ -196,15 +238,28 @@ export default function ProductForm({
       <section className="bg-white border border-line chamfer p-6">
         <div className="flex items-center justify-between mb-4">
           <p className="mono-label text-[11px] text-red">Basic information</p>
-          <button
-            type="button"
-            onClick={generateCopy}
-            disabled={!name}
-            className="text-xs text-red font-medium hover:underline disabled:text-steel disabled:no-underline disabled:cursor-not-allowed"
-          >
-            ✨ Auto-fill description
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={generateCopy}
+              disabled={!name}
+              className="text-xs text-red font-medium hover:underline disabled:text-steel disabled:no-underline disabled:cursor-not-allowed"
+            >
+              ✨ Build from specs below
+            </button>
+            <button
+              type="button"
+              onClick={aiAutoFill}
+              disabled={!name || aiLoading}
+              title="Suggests a description and specs using just the product name — works even with nothing filled in yet"
+              className="flex items-center gap-1 text-xs text-red font-medium hover:underline disabled:text-steel disabled:no-underline disabled:cursor-not-allowed"
+            >
+              {aiLoading && <Loader2 size={12} className="animate-spin" />}
+              🤖 AI-suggest from name
+            </button>
+          </div>
         </div>
+        {aiError && <p className="text-xs text-red -mt-2 mb-3">{aiError}</p>}
         <div className="grid sm:grid-cols-2 gap-4">
           <div className="sm:col-span-2">
             <label className="text-xs font-medium block mb-1.5">Product name *</label>

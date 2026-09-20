@@ -3,10 +3,10 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Pencil, ExternalLink, Loader2, X } from "lucide-react";
+import { Pencil, ExternalLink, Loader2, X, Sparkles } from "lucide-react";
 import Select from "@/components/storefront/Select";
 import DeleteProductButton from "./DeleteProductButton";
-import { bulkUpdateCategoryAction, bulkUpdateConditionAction, bulkDeleteAction } from "./actions";
+import { bulkUpdateCategoryAction, bulkUpdateConditionAction, bulkDeleteAction, bulkEnrichAction } from "./actions";
 import type { Product } from "@/lib/mock-data";
 
 function StockBadge({ stock }: { stock: string }) {
@@ -63,11 +63,17 @@ export default function ProductsListClient({
     setSelected(allSelected ? new Set() : new Set(products.map((p) => p.id)));
   }
 
-  function runBulk(action: () => Promise<{ success: number; failed: string[] }>, verb: string) {
+  const MAX_ENRICH_BATCH = 20;
+
+  function runBulk(
+    action: () => Promise<{ success: number; failed: string[]; skipped?: number }>,
+    verb: string
+  ) {
     startTransition(async () => {
       const result = await action();
-      if (result.failed.length > 0) {
-        alert(`${result.success} ${verb}, ${result.failed.length} failed.`);
+      const skippedNote = result.skipped ? `, ${result.skipped} already had details` : "";
+      if (result.failed.length > 0 || result.skipped) {
+        alert(`${result.success} ${verb}${skippedNote}${result.failed.length ? `, ${result.failed.length} failed` : ""}.`);
       }
       setSelected(new Set());
       setBulkCategory("");
@@ -115,6 +121,22 @@ export default function ProductsListClient({
             className="press h-9 px-3 border border-white/30 text-xs font-medium chamfer-sm hover:bg-white/10"
           >
             Mark Used
+          </button>
+          <button
+            disabled={pending}
+            title="Fills in description/specs for products that only have a name — skips anything already filled in"
+            onClick={() => {
+              if (selected.size > MAX_ENRICH_BATCH) {
+                alert(
+                  `AI enrich works in batches of ${MAX_ENRICH_BATCH} at a time (a bigger batch risks timing out mid-way). Select ${MAX_ENRICH_BATCH} or fewer and run it again for the rest.`
+                );
+                return;
+              }
+              runBulk(() => bulkEnrichAction(ids), "AI-enriched");
+            }}
+            className="press flex items-center gap-1.5 h-9 px-3 border border-white/30 text-xs font-medium chamfer-sm hover:bg-white/10"
+          >
+            <Sparkles size={13} /> AI Enrich
           </button>
           <button
             disabled={pending}
