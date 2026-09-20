@@ -49,7 +49,26 @@ export default async function HomePage() {
     },
     openingHours: "Sa,Su,Mo,Tu,We,Th 11:00-21:30",
   };
-  const featured = products[2] || products[0]; // ROG Strix RTX 4070 — highest-ticket item anchors the hero
+  const featured = products[2] || products[0];
+
+  // Real product photo collage for the hero, not one stock GPU image —
+  // picks a few genuinely different categories so the collage reads as
+  // "this is the range we carry" rather than one lucky product photo.
+  const collageCategories = ["Mice", "Keyboards", "Headphones", "Networking & Wi-Fi", "Laptops"];
+  const collageProducts = collageCategories
+    .map((cat) => products.find((p) => p.category === cat && p.image))
+    .filter((p): p is (typeof products)[number] => !!p)
+    .slice(0, 4);
+  // Falls back to whatever's in stock if the categories above don't exist
+  // yet on a fresh catalog, so the hero never ships with an empty collage.
+  while (collageProducts.length < 4 && products.length > collageProducts.length) {
+    const next = products.find((p) => p.image && !collageProducts.includes(p));
+    if (!next) break;
+    collageProducts.push(next);
+  }
+
+  const inStockCount = products.filter((p) => p.stock !== "out-of-stock").length;
+  const brandCount = new Set(products.map((p) => p.brand).filter(Boolean)).size;
 
   // One real product photo per category group, not a stock icon or plain
   // text card — picks whichever in-stock product in that group has an
@@ -68,12 +87,12 @@ export default async function HomePage() {
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessJsonLd) }}
       />
-      {/* ============ HERO — spec-sheet layout, not a SaaS headline ============ */}
-      <section className="bg-void text-paper">
+      {/* ============ HERO — bold headline + real product collage, not a stock photo ============ */}
+      <section className="bg-void text-paper overflow-hidden">
         <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8 py-14 lg:py-20 grid lg:grid-cols-12 gap-10 items-center">
           <div className="lg:col-span-5">
-            <p className="mono-label text-xs text-red mb-4">New drop — in stock now</p>
-            <h1 className="font-display text-display-lg lg:text-display-xl font-semibold mb-6">
+            <p className="mono-label text-xs text-red mb-4">Genuine stock — Karachi</p>
+            <h1 className="font-display text-display-lg lg:text-display-xl font-black leading-[0.95] mb-6 tracking-tight">
               Hardware
               <br />
               that keeps up.
@@ -98,35 +117,48 @@ export default async function HomePage() {
               </Link>
             </div>
 
-            {/* technical readout strip — echoes the subject's own vernacular */}
+            {/* Real numbers only — this used to claim "2,400+ SKUs" and a
+                "4.8★" average, neither of which was true of the actual
+                catalog. Computed from the live product list instead. */}
             <div className="grid grid-cols-3 gap-6 border-t border-white/10 pt-6 max-w-sm">
               <div>
-                <p className="font-mono text-xl font-semibold">2,400+</p>
-                <p className="mono-label text-[10px] text-paper/50 mt-1">SKUs in stock</p>
+                <p className="font-mono text-xl font-semibold">{inStockCount}+</p>
+                <p className="mono-label text-[10px] text-paper/50 mt-1">In stock now</p>
               </div>
               <div>
                 <p className="font-mono text-xl font-semibold">24hr</p>
                 <p className="mono-label text-[10px] text-paper/50 mt-1">Dispatch</p>
               </div>
               <div>
-                <p className="font-mono text-xl font-semibold">4.8★</p>
-                <p className="mono-label text-[10px] text-paper/50 mt-1">Avg. rating</p>
+                <p className="font-mono text-xl font-semibold">{brandCount}+</p>
+                <p className="mono-label text-[10px] text-paper/50 mt-1">Brands carried</p>
               </div>
             </div>
           </div>
 
-          <div className="lg:col-span-7 relative">
-            <div className="relative chamfer-lg overflow-hidden bg-graphite aspect-[16/10]">
-              <ProductImage
-                src="https://images.unsplash.com/photo-1591405351990-4726e331f141?w=1400&q=80"
-                alt={featured.name}
-                fill
-                priority
-                sizes="(max-width: 1024px) 100vw, 60vw"
-                className="object-cover"
-              />
-            </div>
-            <div className="absolute -bottom-6 left-6 bg-white text-void px-5 py-4 chamfer-sm shadow-2xl max-w-[260px]">
+          {/* Real product collage — a handful of genuinely different
+              categories fanned out, echoing the "product cluster" hero
+              pattern, but built from actual catalog photos so it reads as
+              "this is what we sell" instead of a single aspirational
+              stock shot that doesn't match the inventory. */}
+          <div className="lg:col-span-7 relative h-[340px] sm:h-[420px] lg:h-[480px]">
+            {collageProducts.map((p, i) => {
+              const layouts = [
+                "left-[6%] top-[8%] w-[46%] sm:w-[42%] rotate-[-6deg] z-10",
+                "left-[38%] top-0 w-[40%] sm:w-[36%] rotate-[3deg] z-20",
+                "left-[58%] top-[22%] w-[38%] sm:w-[34%] rotate-[-4deg] z-10",
+                "left-[20%] top-[42%] w-[36%] sm:w-[32%] rotate-[5deg] z-0",
+              ];
+              return (
+                <div
+                  key={p.id}
+                  className={`absolute ${layouts[i]} aspect-square chamfer-lg overflow-hidden bg-white shadow-2xl ring-1 ring-white/10`}
+                >
+                  <ProductImage src={p.image} alt={p.name} fill sizes="(max-width: 1024px) 40vw, 24vw" className="object-contain p-4" />
+                </div>
+              );
+            })}
+            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 sm:left-6 sm:translate-x-0 bg-white text-void px-5 py-4 chamfer-sm shadow-2xl max-w-[260px] z-30">
               <p className="mono-label text-[10px] text-steel mb-1">{featured.brand}</p>
               <p className="text-sm font-medium mb-2 leading-snug">{featured.name}</p>
               <p className="font-mono text-lg font-semibold text-red">
@@ -134,6 +166,14 @@ export default async function HomePage() {
               </p>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ============ WELCOME — real trust copy, the "who is this shop" a visitor needs before category tiles ============ */}
+      <section className="bg-white dark:bg-graphite py-14 text-center border-b border-line dark:border-white/10">
+        <div className="mx-auto max-w-2xl px-4">
+          <h2 className="font-display text-2xl font-semibold mb-3">Welcome to MF COM</h2>
+          <p className="text-steel text-sm leading-relaxed">{storeInfo.tagline}</p>
         </div>
       </section>
 
