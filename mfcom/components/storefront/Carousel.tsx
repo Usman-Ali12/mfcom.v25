@@ -71,16 +71,22 @@ export default function Carousel({ children }: { children: React.ReactNode }) {
       )}
 
       {scrollSnaps.length > 1 && (
-        <div className="flex items-center justify-center gap-1.5 mt-4">
+        <div className="flex items-center justify-center gap-1 mt-5">
           {scrollSnaps.map((_, i) => (
             <button
               key={i}
               onClick={() => emblaApi?.scrollTo(i)}
               aria-label={`Go to slide ${i + 1}`}
-              className={`h-1.5 chamfer-sm transition-all ${
-                i === selectedIndex ? "w-5 bg-red" : "w-1.5 bg-line dark:bg-white/20 hover:bg-steel"
-              }`}
-            />
+              className="press p-2 -m-0.5"
+            >
+              <span
+                className={`block h-2.5 chamfer-sm transition-all ${
+                  i === selectedIndex
+                    ? "w-8 bg-red"
+                    : "w-2.5 bg-line dark:bg-white/20 hover:bg-steel dark:hover:bg-white/40"
+                }`}
+              />
+            </button>
           ))}
         </div>
       )}
