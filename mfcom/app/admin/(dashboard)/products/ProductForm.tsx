@@ -57,6 +57,7 @@ export default function ProductForm({
   const [condition, setCondition] = useState<Product["condition"]>(initial?.condition || "new");
   const [stock, setStock] = useState(initial?.stock || "in-stock");
   const [name, setName] = useState(initial?.name || "");
+  const [warranty, setWarranty] = useState(initial?.warranty || "");
   const [shortSpec, setShortSpec] = useState(initial?.shortSpec || "");
   const [description, setDescription] = useState(initial?.description || "");
   const [autoFilled, setAutoFilled] = useState(false);
@@ -463,11 +464,19 @@ export default function ProductForm({
           </div>
           <div>
             <label className="text-xs font-medium block mb-1.5">Warranty</label>
-            <input
-              name="warranty"
-              defaultValue={initial?.warranty}
-              placeholder="e.g. 2-year manufacturer warranty"
-              className="w-full h-10 px-3 border border-line chamfer-sm text-sm outline-none focus:ring-1 focus:ring-red"
+            <input type="hidden" name="warranty" value={warranty} />
+            <Select
+              value={warranty}
+              onChange={setWarranty}
+              placeholder="None"
+              options={[
+                { value: "", label: "None" },
+                { value: "6-month warranty", label: "6-month warranty" },
+                { value: "1-year manufacturer warranty", label: "1-year manufacturer warranty" },
+                { value: "2-year manufacturer warranty", label: "2-year manufacturer warranty" },
+                { value: "3-year manufacturer warranty", label: "3-year manufacturer warranty" },
+                { value: "Lifetime warranty", label: "Lifetime warranty" },
+              ]}
             />
           </div>
         </div>

@@ -49,23 +49,21 @@ export default async function HomePage() {
     },
     openingHours: "Sa,Su,Mo,Tu,We,Th 11:00-21:30",
   };
-  const featured = products[2] || products[0];
+  // One clear hero product, not four competing fragments — prefers
+  // something visually striking (RGB/gaming gear reads best as a big
+  // hero shot) with a badge if one exists, falling back to whatever's
+  // actually in stock with a real photo.
+  const heroProduct =
+    products.find((p) => p.image && /rgb|gaming/i.test(`${p.name} ${p.description}`) && p.badge) ||
+    products.find((p) => p.image && /rgb|gaming/i.test(`${p.name} ${p.description}`)) ||
+    products.find((p) => p.image && p.badge) ||
+    products.find((p) => p.image) ||
+    products[0];
 
-  // Real product photo collage for the hero, not one stock GPU image —
-  // picks a few genuinely different categories so the collage reads as
-  // "this is the range we carry" rather than one lucky product photo.
-  const collageCategories = ["Mice", "Keyboards", "Headphones", "Networking & Wi-Fi", "Laptops"];
-  const collageProducts = collageCategories
-    .map((cat) => products.find((p) => p.category === cat && p.image))
-    .filter((p): p is (typeof products)[number] => !!p)
-    .slice(0, 4);
-  // Falls back to whatever's in stock if the categories above don't exist
-  // yet on a fresh catalog, so the hero never ships with an empty collage.
-  while (collageProducts.length < 4 && products.length > collageProducts.length) {
-    const next = products.find((p) => p.image && !collageProducts.includes(p));
-    if (!next) break;
-    collageProducts.push(next);
-  }
+  // One supporting photo peeking from behind, for a bit of depth — a
+  // different category than the hero product so it doesn't look like a
+  // duplicate, not another 2-3 fragments competing for attention.
+  const supportingProduct = products.find((p) => p.image && p.category !== heroProduct.category && p.id !== heroProduct.id);
 
   const inStockCount = products.filter((p) => p.stock !== "out-of-stock").length;
   const brandCount = new Set(products.map((p) => p.brand).filter(Boolean)).size;
@@ -136,33 +134,37 @@ export default async function HomePage() {
             </div>
           </div>
 
-          {/* Real product collage — a handful of genuinely different
-              categories fanned out, echoing the "product cluster" hero
-              pattern, but built from actual catalog photos so it reads as
-              "this is what we sell" instead of a single aspirational
-              stock shot that doesn't match the inventory. */}
-          <div className="lg:col-span-7 relative h-[340px] sm:h-[420px] lg:h-[480px]">
-            {collageProducts.map((p, i) => {
-              const layouts = [
-                "left-[6%] top-[8%] w-[46%] sm:w-[42%] rotate-[-6deg] z-10",
-                "left-[38%] top-0 w-[40%] sm:w-[36%] rotate-[3deg] z-20",
-                "left-[58%] top-[22%] w-[38%] sm:w-[34%] rotate-[-4deg] z-10",
-                "left-[20%] top-[42%] w-[36%] sm:w-[32%] rotate-[5deg] z-0",
-              ];
-              return (
-                <div
-                  key={p.id}
-                  className={`absolute ${layouts[i]} aspect-square chamfer-lg overflow-hidden bg-white shadow-2xl ring-1 ring-white/10`}
-                >
-                  <ProductImage src={p.image} alt={p.name} fill sizes="(max-width: 1024px) 40vw, 24vw" className="object-contain p-4" />
-                </div>
-              );
-            })}
-            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 sm:left-6 sm:translate-x-0 bg-white text-void px-5 py-4 chamfer-sm shadow-2xl max-w-[260px] z-30">
-              <p className="mono-label text-[10px] text-steel mb-1">{featured.brand}</p>
-              <p className="text-sm font-medium mb-2 leading-snug">{featured.name}</p>
+          {/* One dominant hero shot with a single supporting photo behind
+              it for depth — not a pile of overlapping fragments. The price
+              card below points at the actual hero image, not an unrelated
+              product. */}
+          <div className="lg:col-span-7 relative h-[320px] sm:h-[400px] lg:h-[460px]">
+            {supportingProduct && (
+              <div className="absolute right-[4%] top-[6%] w-[52%] sm:w-[46%] aspect-square rotate-[4deg] chamfer-lg overflow-hidden bg-white shadow-xl ring-1 ring-white/10 z-0">
+                <ProductImage
+                  src={supportingProduct.image}
+                  alt={supportingProduct.name}
+                  fill
+                  sizes="(max-width: 1024px) 40vw, 22vw"
+                  className="object-contain p-6 opacity-90"
+                />
+              </div>
+            )}
+            <div className="absolute left-0 top-[8%] w-[62%] sm:w-[58%] aspect-square rotate-[-3deg] chamfer-lg overflow-hidden bg-white shadow-2xl ring-1 ring-white/10 z-10">
+              <ProductImage
+                src={heroProduct.image}
+                alt={heroProduct.name}
+                fill
+                priority
+                sizes="(max-width: 1024px) 55vw, 32vw"
+                className="object-contain p-6"
+              />
+            </div>
+            <div className="absolute -bottom-2 left-4 sm:left-10 bg-white text-void px-5 py-4 chamfer-sm shadow-2xl max-w-[260px] z-20">
+              <p className="mono-label text-[10px] text-steel mb-1">{heroProduct.brand}</p>
+              <p className="text-sm font-medium mb-2 leading-snug">{heroProduct.name}</p>
               <p className="font-mono text-lg font-semibold text-red">
-                Rs. {featured.price.toLocaleString()}
+                Rs. {heroProduct.price.toLocaleString()}
               </p>
             </div>
           </div>

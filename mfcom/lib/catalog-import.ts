@@ -314,3 +314,45 @@ export async function enhanceCatalogPhoto(
 
   return { file: imgFile, enhanced: false, bgRemoved: false };
 }
+
+// Re-cleans a photo that's already live on a product — for stragglers like
+// a photo imported before this white-background pipeline existed, or one
+// remove.bg's monthly quota skipped over the first time. Passes the
+// existing URL straight to remove.bg (image_url) rather than re-uploading
+// bytes, since it's already hosted; falls back to running it through
+// wsrv.nl's padding step (also URL-based) if remove.bg can't do it.
+export async function cleanupExistingImageUrl(
+  imageUrl: string
+): Promise<{ url: string; bgRemoved: boolean } | null> {
+  const apiKey = process.env.REMOVEBG_API_KEY;
+  if (apiKey) {
+    try {
+      const res = await fetch("https://api.remove.bg/v1.0/removebg", {
+        method: "POST",
+        headers: { "X-Api-Key": apiKey, "Content-Type": "application/json" },
+        body: JSON.stringify({ image_url: imageUrl, size: "auto", bg_color: "FFFFFF", format: "jpg" }),
+      });
+      if (res.ok) {
+        const bytes = await res.arrayBuffer();
+        const file = new File([bytes], `cleaned-${Date.now()}.jpg`, { type: "image/jpeg" });
+        const { uploadMedia } = await import("./media-store");
+        const media = await uploadMedia(file);
+        return { url: media.url, bgRemoved: true };
+      }
+    } catch {
+      // fall through to wsrv.nl
+    }
+  }
+
+  try {
+    const enhanceRes = await fetch(wsrvEnhanceUrl(imageUrl));
+    if (!enhanceRes.ok) return null;
+    const bytes = await enhanceRes.arrayBuffer();
+    const file = new File([bytes], `padded-${Date.now()}.jpg`, { type: "image/jpeg" });
+    const { uploadMedia } = await import("./media-store");
+    const media = await uploadMedia(file);
+    return { url: media.url, bgRemoved: false };
+  } catch {
+    return null;
+  }
+}

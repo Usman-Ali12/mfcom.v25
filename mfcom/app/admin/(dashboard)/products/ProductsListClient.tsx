@@ -3,10 +3,10 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Pencil, ExternalLink, Loader2, X, Sparkles } from "lucide-react";
+import { Pencil, ExternalLink, Loader2, X, Sparkles, ImageOff } from "lucide-react";
 import Select from "@/components/storefront/Select";
 import DeleteProductButton from "./DeleteProductButton";
-import { bulkUpdateCategoryAction, bulkUpdateConditionAction, bulkDeleteAction, bulkEnrichAction } from "./actions";
+import { bulkUpdateCategoryAction, bulkUpdateConditionAction, bulkDeleteAction, bulkEnrichAction, bulkCleanupPhotosAction } from "./actions";
 import type { Product } from "@/lib/mock-data";
 
 function StockBadge({ stock }: { stock: string }) {
@@ -137,6 +137,22 @@ export default function ProductsListClient({
             className="press flex items-center gap-1.5 h-9 px-3 border border-white/30 text-xs font-medium chamfer-sm hover:bg-white/10"
           >
             <Sparkles size={13} /> AI Enrich
+          </button>
+          <button
+            disabled={pending}
+            title="Re-cleans photos already on selected products to a white background — for stragglers imported before this existed"
+            onClick={() => {
+              if (selected.size > MAX_ENRICH_BATCH) {
+                alert(
+                  `Photo cleanup works in batches of ${MAX_ENRICH_BATCH} at a time. Select ${MAX_ENRICH_BATCH} or fewer and run it again for the rest.`
+                );
+                return;
+              }
+              runBulk(() => bulkCleanupPhotosAction(ids), "cleaned up");
+            }}
+            className="press flex items-center gap-1.5 h-9 px-3 border border-white/30 text-xs font-medium chamfer-sm hover:bg-white/10"
+          >
+            <ImageOff size={13} /> Clean Up Photos
           </button>
           <button
             disabled={pending}

@@ -91,7 +91,11 @@ export async function confirmCatalogImportAction(
         image: row.images[0] || "",
         gallery: row.images,
         specifications: [],
-        warranty: "1-year manufacturer warranty",
+        // Not "1-year manufacturer warranty" — that was a guess with
+        // nothing behind it for a scraped WhatsApp listing. Better to show
+        // "Not specified" (see the Specifications fallback) until an admin
+        // actually confirms real terms per product.
+        warranty: "",
         condition: row.condition,
       };
 

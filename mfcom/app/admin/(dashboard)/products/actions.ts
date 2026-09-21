@@ -6,6 +6,7 @@ import { createProduct, updateProduct, removeProduct, listProducts, slugify } fr
 import { createBrand, getBrandByName } from "@/lib/brands-store";
 import { createCategory, listCategories } from "@/lib/categories-store";
 import { enrichProductDetails } from "@/lib/ai-enrich";
+import { cleanupExistingImageUrl } from "@/lib/catalog-import";
 import type { Product } from "@/lib/mock-data";
 
 const NEW_VALUE = "__new__";
@@ -72,7 +73,7 @@ async function readProductForm(formData: FormData): Promise<Omit<Product, "id">>
     image,
     gallery,
     specifications,
-    warranty: String(formData.get("warranty") || "1-year manufacturer warranty"),
+    warranty: String(formData.get("warranty") || ""),
     badge: (formData.get("badge") as Product["badge"]) || undefined,
     condition: (formData.get("condition") as Product["condition"]) || "new",
   };
@@ -213,4 +214,37 @@ export async function bulkEnrichAction(ids: string[]): Promise<{ success: number
   revalidatePath("/admin/products");
   revalidatePath("/shop");
   return { success, skipped, failed };
+}
+
+// Re-cleans photos already live on selected products — for stragglers like
+// the Seagate photo that got imported before the white-background
+// pipeline existed, or ones remove.bg's free monthly quota skipped over
+// the first time around. Capped in the UI same as AI Enrich, for the same
+// reason (sequential per-product external API calls, real timeout risk on
+// a big batch in one request).
+export async function bulkCleanupPhotosAction(ids: string[]): Promise<{ success: number; failed: string[] }> {
+  const all = await listProducts();
+  const targets = all.filter((p) => ids.includes(p.id) && p.image);
+
+  let success = 0;
+  const failed: string[] = [];
+
+  for (const product of targets) {
+    try {
+      const result = await cleanupExistingImageUrl(product.image);
+      if (!result) {
+        failed.push(product.id);
+        continue;
+      }
+      const newGallery = [result.url, ...product.gallery.filter((g) => g !== product.image)];
+      await updateProduct(product.id, { image: result.url, gallery: newGallery });
+      success++;
+    } catch {
+      failed.push(product.id);
+    }
+  }
+
+  revalidatePath("/admin/products");
+  revalidatePath("/shop");
+  return { success, failed };
 }
