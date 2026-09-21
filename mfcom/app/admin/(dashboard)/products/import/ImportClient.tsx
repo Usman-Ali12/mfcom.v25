@@ -39,7 +39,7 @@ export default function ImportClient() {
   const [rows, setRows] = useState<Row[]>([]);
   const [categories, setCategories] = useState<ApiCategory[]>([]);
   const [skippedCount, setSkippedCount] = useState(0);
-  const [result, setResult] = useState<{ imported: number; failed: { name: string; error: string }[] } | null>(null);
+  const [result, setResult] = useState<{ imported: number; skipped: number; failed: { name: string; error: string }[] } | null>(null);
   const [zoomUrl, setZoomUrl] = useState<string | null>(null);
   const [urlEditIndex, setUrlEditIndex] = useState<number | null>(null);
   const [rowUploadingIndex, setRowUploadingIndex] = useState<number | null>(null);
@@ -185,6 +185,11 @@ export default function ImportClient() {
         <h2 className="font-display text-xl font-semibold mb-2">
           Imported {result.imported} product{result.imported === 1 ? "" : "s"}
         </h2>
+        {result.skipped > 0 && (
+          <p className="text-sm text-steel mt-2">
+            {result.skipped} already existed in your catalog — skipped rather than creating duplicates.
+          </p>
+        )}
         {result.failed.length > 0 && (
           <div className="text-left bg-red/5 border border-red/20 chamfer-sm p-4 mt-4 text-sm">
             <p className="font-medium text-red mb-2">{result.failed.length} couldn't be saved:</p>

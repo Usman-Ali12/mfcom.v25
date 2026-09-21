@@ -7,10 +7,16 @@ import NewsletterForm from "@/components/storefront/NewsletterForm";
 export default function Footer({
   settings,
   categoryGroups,
+  categorySlugs,
 }: {
   settings: SiteSettings;
   categoryGroups: { group: string; items: string[] }[];
+  categorySlugs: Record<string, string>;
 }) {
+  function categoryHref(name: string) {
+    const slug = categorySlugs[name] || name.toLowerCase().replace(/\s+/g, "-");
+    return `/category/${slug}`;
+  }
   return (
     <footer className="bg-void text-paper mt-20">
       <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8 py-16">
@@ -49,7 +55,7 @@ export default function Footer({
                 {group.items.map((item) => (
                   <li key={item}>
                     <Link
-                      href={`/category/${item.toLowerCase().replace(/\s+/g, "-")}`}
+                      href={categoryHref(item)}
                       className="text-sm text-paper/70 hover:text-white transition-colors"
                     >
                       {item}

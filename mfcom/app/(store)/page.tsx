@@ -1,6 +1,6 @@
 import Link from "next/link";
 import ProductImage from "@/components/storefront/ProductImage";
-import { ArrowUpRight, Truck, ShieldCheck, RotateCcw, Headphones } from "lucide-react";
+import { ArrowUpRight, Truck, ShieldCheck, RotateCcw, Headphones, BadgeCheck, MessageCircle } from "lucide-react";
 import ProductCard from "@/components/storefront/ProductCard";
 import CountdownTimer from "@/components/storefront/CountdownTimer";
 import Carousel from "@/components/storefront/Carousel";
@@ -30,6 +30,12 @@ export default async function HomePage() {
   const dealProducts = activePromotion
     ? products.filter((p) => activePromotion.productSlugs.includes(p.slug))
     : [];
+
+  // Real filter, not a fabricated category — only renders a "Gaming Gear"
+  // rail when there's genuinely enough stock to fill one. Matches on
+  // actual product text (name/description) rather than assuming a
+  // category split that doesn't exist in the real catalog.
+  const gamingProducts = products.filter((p) => /gaming|rgb/i.test(`${p.name} ${p.description}`)).slice(0, 8);
 
   // LocalBusiness schema — high-value for a physical Karachi shop: this is
   // what lets MF COM show up with address/hours/phone directly in local
@@ -301,6 +307,27 @@ export default async function HomePage() {
         </Carousel>
       </section>
 
+      {/* ============ GAMING GEAR — only renders with enough real stock to fill it, never a padded-out category ============ */}
+      {gamingProducts.length >= 4 && (
+        <section className="bg-void text-paper py-14">
+          <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
+            <div className="flex items-baseline justify-between mb-6">
+              <h2 className="font-display text-display-md font-semibold">Gaming gear</h2>
+              <Link href="/shop" className="text-sm text-red font-medium flex items-center gap-1 hover:gap-2 transition-all">
+                View all <ArrowUpRight size={14} />
+              </Link>
+            </div>
+            <Carousel>
+              {gamingProducts.map((p) => (
+                <div key={p.id} data-carousel-item className="w-[220px] sm:w-[260px] shrink-0 snap-start">
+                  <ProductCard product={p} />
+                </div>
+              ))}
+            </Carousel>
+          </div>
+        </section>
+      )}
+
       {/* ============ BRAND STRIP — real authorized partners ============ */}
       <section className="border-y border-line dark:border-white/10 bg-white dark:bg-graphite py-8">
         <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
@@ -317,24 +344,49 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ============ TRUST / SERVICE — concrete, Jarir-style specific claims ============ */}
-      <section className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8 py-14 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[
-          { icon: Truck, title: "Fast dispatch", copy: "Same-day dispatch on orders placed before 4pm." },
-          { icon: ShieldCheck, title: "Genuine stock", copy: "Authorized dealer — full manufacturer warranty, up to 3 years on electronics." },
-          { icon: RotateCcw, title: "7-day returns", copy: "Change-of-mind returns on unopened items within 7 days." },
-          { icon: Headphones, title: "Real support", copy: "WhatsApp or call, 11am-9:30pm — a person answers, not a bot." },
-        ].map((item) => (
-          <div key={item.title} className="flex gap-4">
-            <div className="w-11 h-11 shrink-0 bg-void text-red flex items-center justify-center chamfer-sm">
-              <item.icon size={20} />
-            </div>
-            <div>
-              <p className="font-medium text-sm mb-1">{item.title}</p>
-              <p className="text-xs text-steel">{item.copy}</p>
-            </div>
+      {/* ============ TRUST / SERVICE — concrete claims only, no invented promises ============ */}
+      <section className="bg-paper dark:bg-void/40 py-16">
+        <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
+          <p className="mono-label text-xs text-red mb-2 text-center">Why buy from MF COM</p>
+          <h2 className="font-display text-2xl sm:text-3xl font-semibold text-center mb-10">
+            A specialist you can actually talk to
+          </h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-8">
+            {[
+              { icon: ShieldCheck, title: "Authorized products", copy: "Manufacturer-backed stock from recognized brands, not grey-market imports." },
+              { icon: BadgeCheck, title: "Warranty", copy: "Manufacturer warranty on eligible products — checked before it ships." },
+              { icon: Truck, title: "Fast dispatch", copy: "Same-day dispatch on orders placed before 4pm." },
+              { icon: RotateCcw, title: "Easy returns", copy: "Change-of-mind returns on unopened items within 7 days." },
+              { icon: Headphones, title: "Real support", copy: "WhatsApp or call, 11am-9:30pm — a person answers, not a bot." },
+            ].map((item) => (
+              <div key={item.title} className="text-center sm:text-left">
+                <div className="w-12 h-12 mx-auto sm:mx-0 bg-void text-red flex items-center justify-center chamfer-sm mb-4">
+                  <item.icon size={22} />
+                </div>
+                <p className="font-medium text-sm mb-1.5">{item.title}</p>
+                <p className="text-xs text-steel leading-relaxed">{item.copy}</p>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
+      </section>
+
+      {/* ============ ASK A SPECIALIST — WhatsApp CTA, not a chatbot ============ */}
+      <section className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8 py-16">
+        <div className="bg-void text-paper chamfer-lg px-8 py-12 sm:px-16 sm:py-14 flex flex-col sm:flex-row items-center justify-between gap-8 text-center sm:text-left">
+          <div>
+            <h2 className="font-display text-2xl sm:text-3xl font-semibold mb-2">Not sure which product is right for you?</h2>
+            <p className="text-paper/60 text-sm">Talk to an MF COM specialist — real answers, no bot.</p>
+          </div>
+          <a
+            href={`https://wa.me/${settings.whatsappNumber}?text=${encodeURIComponent("Hi MF COM, I need help choosing a product.")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="press shrink-0 h-12 px-7 bg-[#25D366] text-white text-sm font-medium flex items-center gap-2 chamfer hover:brightness-95 transition"
+          >
+            <MessageCircle size={17} /> Chat on WhatsApp
+          </a>
+        </div>
       </section>
     </>
   );

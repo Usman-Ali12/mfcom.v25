@@ -6,6 +6,20 @@
   --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+  /* #6E6E73 gives reasonable contrast for muted text on light/paper
+     backgrounds, but the same gray on a dark background (void/graphite)
+     reads as low-contrast and hard to read — text-steel is used in ~50
+     files for exactly this "muted secondary text" role, so patching each
+     usage individually is how this kind of gap keeps getting missed.
+     Redefining the token itself under .dark fixes every usage at once. */
+  /* Space-separated RGB channels (not hex) — required for Tailwind's
+     opacity modifier syntax (text-steel/70 etc.), which several places
+     already use and would otherwise silently break. */
+  --color-steel: 110 110 115; /* #6E6E73 */
+}
+
+.dark {
+  --color-steel: 155 155 163; /* #9B9BA3 */
 }
 
 * {

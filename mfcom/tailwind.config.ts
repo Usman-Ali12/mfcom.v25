@@ -19,7 +19,7 @@ const config: Config = {
       colors: {
         void: "#0B0B0C",       // primary dark foundation (header, footer, promo)
         graphite: "#17171B",   // secondary dark surface, cards-on-black
-        steel: "#6E6E73",      // muted text, borders, disabled states
+        steel: "rgb(var(--color-steel) / <alpha-value>)", // muted text, borders, disabled states — theme-aware, see globals.css
         paper: "#F4F4F2",      // off-white surface, product photography backdrop
         line: "#E4E3DE",       // hairline dividers on paper
         red: {

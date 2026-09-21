@@ -4,28 +4,60 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, ShoppingCart, Menu, X, ChevronRight } from "lucide-react";
+import {
+  Heart,
+  ShoppingCart,
+  Menu,
+  X,
+  ChevronRight,
+  Laptop,
+  Cpu,
+  Mouse,
+  Wifi,
+  Cable,
+  Package,
+  MessageCircle,
+  ShieldCheck,
+} from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
 import ThemeToggle from "@/components/storefront/ThemeToggle";
 import SearchBox from "@/components/storefront/SearchBox";
 import TrackOrderQuickEntry from "@/components/storefront/TrackOrderQuickEntry";
 
+// Icon per nav group, matched by name with a sane fallback — group names
+// come from the live categories table (admin-editable), not a fixed enum,
+// so this can't assume every possible name is covered.
+const GROUP_ICONS: Record<string, typeof Laptop> = {
+  Computers: Laptop,
+  Components: Cpu,
+  Peripherals: Mouse,
+  Networking: Wifi,
+  Accessories: Cable,
+};
+
 export default function Header({
-  // Unused for now — was feeding the announcement bar, which is parked
-  // (see note below). Left in the signature since the layout already
-  // passes it and it's the natural hook if a promo bar comes back.
-  whatsappDisplay: _whatsappDisplay,
+  whatsappDisplay,
   categoryGroups,
+  categorySlugs,
 }: {
   whatsappDisplay: string;
   categoryGroups: { group: string; items: string[] }[];
+  categorySlugs: Record<string, string>;
 }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { count } = useCart();
   const { count: wishlistCount } = useWishlist();
+
+  // Real slug when we have one; the old naive-slugify-the-name approach
+  // only as a last resort, so a category the map doesn't know about yet
+  // still links somewhere plausible rather than breaking entirely.
+  function categoryHref(name: string) {
+    const slug = categorySlugs[name] || name.toLowerCase().replace(/\s+/g, "-");
+    return `/category/${slug}`;
+  }
 
   // Cart-icon bump — a small, real micro-interaction (not decoration): it
   // confirms the add actually registered, the same instinct behind Jarir's
@@ -56,6 +88,18 @@ export default function Header({
 
   return (
     <>
+      {/* Announcement bar — real trust claims only (no invented delivery
+          promises), and the WhatsApp number actually does something
+          (tel: link) rather than sitting there as decoration. */}
+      <div className="hidden sm:flex items-center justify-between bg-black text-paper/70 text-xs px-4 sm:px-6 lg:px-8 h-9">
+        <p className="flex items-center gap-1.5">
+          <ShieldCheck size={13} className="text-red" /> Genuine stock · Manufacturer warranty on eligible items
+        </p>
+        <a href={`tel:${whatsappDisplay.replace(/[^0-9+]/g, "")}`} className="flex items-center gap-1.5 hover:text-white transition-colors">
+          <MessageCircle size={13} className="text-red" /> Need help? {whatsappDisplay}
+        </a>
+      </div>
+
       <header className="sticky top-0 z-50 bg-void text-paper border-b border-white/10">
         <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
           <div className="flex h-[76px] items-center gap-6">
@@ -88,7 +132,14 @@ export default function Header({
                 CATEGORIES
               </button>
 
-              {/* Mega menu */}
+              {/* Mega menu — grouped columns with an icon per group and a
+                  fixed promo panel, closer to a real specialist-retailer
+                  nav than a plain text dropdown. Every link uses the
+                  category's actual stored slug now (see categoryHref
+                  above) — this used to naively slugify the display name
+                  instead, which silently broke for any name with
+                  punctuation (e.g. "Networking & Wi-Fi" linked to a URL
+                  containing a literal "&" that matched nothing). */}
               <AnimatePresence>
                 {menuOpen && (
                   <motion.div
@@ -96,34 +147,53 @@ export default function Header({
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -8 }}
                     transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
-                    className="absolute left-0 top-full w-[720px] bg-void border border-white/10 border-t-2 border-t-red shadow-2xl"
+                    className="absolute left-0 top-full w-[860px] bg-void border border-white/10 border-t-2 border-t-red shadow-2xl flex"
                   >
-                    <div className="grid grid-cols-3 gap-x-8 gap-y-6 p-8">
-                      {categoryGroups.map((group) => (
-                        <div key={group.group}>
-                          <p className="mono-label text-[11px] text-red mb-3">{group.group}</p>
-                          <ul className="space-y-2.5">
-                            {group.items.map((item) => (
-                              <li key={item}>
-                                <Link
-                                  href={`/category/${item.toLowerCase().replace(/\s+/g, "-")}`}
-                                  className="text-sm text-paper/85 hover:text-red transition-colors"
-                                >
-                                  {item}
-                                </Link>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      ))}
+                    <div className="flex-1 grid grid-cols-3 gap-x-8 gap-y-7 p-8">
+                      {categoryGroups.map((group) => {
+                        const Icon = GROUP_ICONS[group.group] || Package;
+                        return (
+                          <div key={group.group}>
+                            <p className="flex items-center gap-2 mono-label text-[11px] text-red mb-3">
+                              <Icon size={14} /> {group.group}
+                            </p>
+                            <ul className="space-y-2.5">
+                              {group.items.map((item) => (
+                                <li key={item}>
+                                  <Link href={categoryHref(item)} className="text-sm text-paper/85 hover:text-red transition-colors">
+                                    {item}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <Link
-                      href="/deals"
-                      className="flex items-center justify-between px-8 py-4 bg-red/10 text-red text-sm font-medium hover:bg-red/15 transition-colors"
-                    >
-                      View this week's deals
-                      <ChevronRight size={16} />
-                    </Link>
+                    {/* Fixed promo panel — always deals/support, never a
+                        specific claim that could go stale. */}
+                    <div className="w-[220px] shrink-0 bg-white/[0.03] border-l border-white/10 p-6 flex flex-col justify-between">
+                      <div>
+                        <p className="mono-label text-[10px] text-red mb-2">This week</p>
+                        <p className="text-sm text-paper/85 leading-relaxed mb-4">
+                          Browse current markdowns across the whole catalog.
+                        </p>
+                        <Link href="/deals" className="text-sm font-medium text-red hover:underline">
+                          View deals →
+                        </Link>
+                      </div>
+                      <div className="border-t border-white/10 pt-4">
+                        <p className="text-xs text-paper/50 mb-2">Not sure what fits your setup?</p>
+                        <a
+                          href={`https://wa.me/${whatsappDisplay.replace(/[^0-9]/g, "")}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-sm font-medium text-green-400 hover:text-green-300"
+                        >
+                          <MessageCircle size={15} /> Ask on WhatsApp
+                        </a>
+                      </div>
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -214,24 +284,34 @@ export default function Header({
                 )}
               </Link>
 
-              {categoryGroups.map((group) => (
-                <div key={group.group}>
-                  <p className="mono-label text-[11px] text-red mb-3">{group.group}</p>
-                  <ul className="space-y-3">
-                    {group.items.map((item) => (
-                      <li key={item}>
-                        <Link
-                          href={`/category/${item.toLowerCase().replace(/\s+/g, "-")}`}
-                          className="text-base"
-                          onClick={() => setMobileOpen(false)}
-                        >
-                          {item}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+              <a
+                href={`https://wa.me/${whatsappDisplay.replace(/[^0-9]/g, "")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 text-base text-green-400"
+              >
+                <MessageCircle size={18} /> Ask on WhatsApp
+              </a>
+
+              {categoryGroups.map((group) => {
+                const Icon = GROUP_ICONS[group.group] || Package;
+                return (
+                  <div key={group.group}>
+                    <p className="flex items-center gap-2 mono-label text-[11px] text-red mb-3">
+                      <Icon size={14} /> {group.group}
+                    </p>
+                    <ul className="space-y-3">
+                      {group.items.map((item) => (
+                        <li key={item}>
+                          <Link href={categoryHref(item)} className="text-base" onClick={() => setMobileOpen(false)}>
+                            {item}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
             </div>
           </motion.div>
         )}
