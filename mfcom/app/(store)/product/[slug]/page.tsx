@@ -53,6 +53,9 @@ export default async function ProductPage({ params }: { params: { slug: string }
   if (!product) notFound();
 
   const related = allProducts.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 4);
+  const variants = product.variantGroupId
+    ? allProducts.filter((p) => p.variantGroupId === product.variantGroupId)
+    : [];
   const settings = await getSettings();
 
   // Imported products never got real spec rows filled in (name/price/photo
@@ -136,7 +139,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
         <span className="text-void dark:text-paper">{product.name}</span>
       </div>
 
-      <ProductPurchasePanel product={product} whatsappNumber={settings.whatsappNumber} />
+      <ProductPurchasePanel product={product} whatsappNumber={settings.whatsappNumber} variants={variants} />
 
       {/* Specifications */}
       <section className="mt-16 max-w-3xl">

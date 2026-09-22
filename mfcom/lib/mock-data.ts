@@ -30,6 +30,13 @@ export type Product = {
   badge?: "New" | "Best Seller" | "Deal";
   /** Item condition — brand-new stock vs. used/pre-owned (laptops especially). Shown as a customer-facing badge and filterable on /shop. */
   condition: "new" | "used";
+  /** Links color/style variants of the same item together (e.g. a Razer
+   * mouse in Black vs White are separate product rows sharing this id) —
+   * variantLabel is the display name for this specific one ("Black").
+   * Both optional: a product with neither is just a normal single-option
+   * item, no variant selector shown. */
+  variantGroupId?: string;
+  variantLabel?: string;
 };
 
 // Real MF COM business details, from the client's storefront/business card.

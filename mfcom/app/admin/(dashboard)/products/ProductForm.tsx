@@ -22,6 +22,7 @@ export default function ProductForm({
   categoryNames,
   brandNames,
   mediaItems,
+  allProducts,
 }: {
   action: (formData: FormData) => void;
   initial?: Product;
@@ -29,6 +30,7 @@ export default function ProductForm({
   categoryNames: string[];
   brandNames: string[];
   mediaItems: MediaItem[];
+  allProducts: { id: string; name: string; image: string; variantGroupId?: string }[];
 }) {
   const [specs, setSpecs] = useState<{ label: string; value: string }[]>(
     initial?.specifications?.length ? initial.specifications : [{ label: "", value: "" }]
@@ -58,6 +60,12 @@ export default function ProductForm({
   const [stock, setStock] = useState(initial?.stock || "in-stock");
   const [name, setName] = useState(initial?.name || "");
   const [warranty, setWarranty] = useState(initial?.warranty || "");
+  const [variantLabel, setVariantLabel] = useState(initial?.variantLabel || "");
+  const [linkVariantOf, setLinkVariantOf] = useState("");
+  const [unlinkVariant, setUnlinkVariant] = useState(false);
+  const currentSiblings = initial?.variantGroupId
+    ? allProducts.filter((p) => p.variantGroupId === initial.variantGroupId)
+    : [];
   const [shortSpec, setShortSpec] = useState(initial?.shortSpec || "");
   const [description, setDescription] = useState(initial?.description || "");
   const [autoFilled, setAutoFilled] = useState(false);
@@ -409,6 +417,72 @@ export default function ProductForm({
               no separate SEO field to fill in.
             </p>
           </div>
+        </div>
+      </section>
+
+      {/* Color / style variants — links separate product rows together
+          (e.g. the same Razer mouse in Black and White) so the product
+          page can show a real selector, each option keeping its own
+          actual price/stock/photos rather than faking per-color
+          inventory on a single row. */}
+      <section className="bg-white border border-line chamfer p-6">
+        <p className="mono-label text-[11px] text-red mb-4">Color / style variant</p>
+        <input type="hidden" name="variantLabel" value={variantLabel} />
+        <div className="grid sm:grid-cols-2 gap-5">
+          <div>
+            <label className="text-xs font-medium block mb-1.5">This listing's color/style</label>
+            <input
+              value={variantLabel}
+              onChange={(e) => setVariantLabel(e.target.value)}
+              placeholder="e.g. Black, White, Red — leave blank if not applicable"
+              className="w-full h-10 px-3 border border-line chamfer-sm text-sm outline-none focus:ring-1 focus:ring-red"
+            />
+          </div>
+
+          {currentSiblings.length > 0 ? (
+            <div>
+              <label className="text-xs font-medium block mb-1.5">Linked variants</label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {currentSiblings.map((s) => (
+                  <Link
+                    key={s.id}
+                    href={`/admin/products/${s.id}/edit`}
+                    className="flex items-center gap-2 h-9 pl-1.5 pr-3 border border-line chamfer-sm text-xs hover:border-red transition-colors"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={s.image} alt="" className="w-6 h-6 object-cover chamfer-sm bg-paper" />
+                    {s.name}
+                  </Link>
+                ))}
+              </div>
+              <label className="flex items-center gap-2 text-xs text-steel cursor-pointer w-fit">
+                <input
+                  type="checkbox"
+                  name="unlinkVariant"
+                  checked={unlinkVariant}
+                  onChange={(e) => setUnlinkVariant(e.target.checked)}
+                />
+                Remove this listing from the group
+              </label>
+            </div>
+          ) : (
+            <div>
+              <label className="text-xs font-medium block mb-1.5">Link as a variant of an existing product</label>
+              <input type="hidden" name="linkVariantOf" value={linkVariantOf} />
+              <Select
+                value={linkVariantOf}
+                onChange={setLinkVariantOf}
+                placeholder="Not a variant of anything"
+                options={[
+                  { value: "", label: "Not a variant of anything" },
+                  ...allProducts.map((p) => ({ value: p.id, label: p.name })),
+                ]}
+              />
+              <p className="text-xs text-steel mt-1.5">
+                Picks up whatever group that product is already in, or starts a new one linking just these two.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 

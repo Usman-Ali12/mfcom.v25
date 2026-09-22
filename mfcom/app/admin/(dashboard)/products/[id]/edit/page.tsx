@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getProductById } from "@/lib/admin-store";
+import { getProductById, listProducts } from "@/lib/admin-store";
 import { listCategories } from "@/lib/categories-store";
 import { listBrands } from "@/lib/brands-store";
 import { listMedia } from "@/lib/media-store";
@@ -12,10 +12,11 @@ export const dynamic = "force-dynamic";
 export default async function EditProductPage({ params }: { params: { id: string } }) {
   const product = await getProductById(params.id);
   if (!product) notFound();
-  const [categoryNames, brandNames, mediaItems] = await Promise.all([
+  const [categoryNames, brandNames, mediaItems, allProductsRaw] = await Promise.all([
     listCategories().then((c) => c.map((x) => x.name)),
     listBrands().then((b) => b.map((x) => x.name)),
     listMedia(),
+    listProducts(),
   ]);
   // A product's existing brand/category might predate the brands table or
   // have been removed since — keep it selectable in its own edit form even
@@ -23,6 +24,10 @@ export default async function EditProductPage({ params }: { params: { id: string
   // blanking the field.
   if (product.brand && !brandNames.includes(product.brand)) brandNames.unshift(product.brand);
   if (product.category && !categoryNames.includes(product.category)) categoryNames.unshift(product.category);
+
+  const allProducts = allProductsRaw
+    .filter((p) => p.id !== product.id)
+    .map((p) => ({ id: p.id, name: p.name, image: p.image, variantGroupId: p.variantGroupId }));
 
   return (
     <div>
@@ -35,6 +40,7 @@ export default async function EditProductPage({ params }: { params: { id: string
         categoryNames={categoryNames}
         brandNames={brandNames}
         mediaItems={mediaItems}
+        allProducts={allProducts}
       />
     </div>
   );

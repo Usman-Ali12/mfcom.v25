@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { createProduct, updateProduct, removeProduct, listProducts, slugify } from "@/lib/admin-store";
+import { createProduct, updateProduct, removeProduct, listProducts, getProductById, slugify } from "@/lib/admin-store";
 import { createBrand, getBrandByName } from "@/lib/brands-store";
 import { createCategory, listCategories } from "@/lib/categories-store";
 import { enrichProductDetails } from "@/lib/ai-enrich";
@@ -76,11 +76,34 @@ async function readProductForm(formData: FormData): Promise<Omit<Product, "id">>
     warranty: String(formData.get("warranty") || ""),
     badge: (formData.get("badge") as Product["badge"]) || undefined,
     condition: (formData.get("condition") as Product["condition"]) || "new",
+    variantLabel: String(formData.get("variantLabel") || "").trim() || undefined,
   };
+}
+
+// Resolves what a product's variantGroupId should become after this save:
+// - unlinkVariant checked → null (leaves the group)
+// - linkVariantOf set → shares (or creates) a group id with that product
+// - neither → undefined, meaning "don't touch whatever it already is"
+//   (readProductForm has no opinion on this — the field isn't even in the
+//   form when a product already has siblings, only when it doesn't)
+async function resolveVariantGroupId(formData: FormData): Promise<string | null | undefined> {
+  if (formData.get("unlinkVariant")) return null;
+
+  const linkVariantOf = String(formData.get("linkVariantOf") || "").trim();
+  if (!linkVariantOf) return undefined;
+
+  const target = await getProductById(linkVariantOf);
+  if (!target) return undefined;
+  if (target.variantGroupId) return target.variantGroupId;
+
+  const newGroupId = `vg-${Date.now()}`;
+  await updateProduct(target.id, { variantGroupId: newGroupId });
+  return newGroupId;
 }
 
 export async function createProductAction(formData: FormData) {
   const input = await readProductForm(formData);
+  input.variantGroupId = (await resolveVariantGroupId(formData)) ?? undefined;
   await createProduct(input);
   revalidatePath("/admin/products");
   revalidatePath("/admin/brands");
@@ -91,7 +114,8 @@ export async function createProductAction(formData: FormData) {
 
 export async function updateProductAction(formData: FormData) {
   const id = String(formData.get("id") || "");
-  const input = await readProductForm(formData);
+  const input: Partial<Omit<Product, "variantGroupId">> & { variantGroupId?: string | null } = await readProductForm(formData);
+  input.variantGroupId = await resolveVariantGroupId(formData);
   await updateProduct(id, input);
   revalidatePath("/admin/products");
   revalidatePath("/admin/brands");

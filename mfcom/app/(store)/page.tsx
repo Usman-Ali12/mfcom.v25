@@ -78,6 +78,28 @@ export default async function HomePage() {
   // text card — picks whichever in-stock product in that group has an
   // actual image, favoring anything with a badge as a slightly better
   // representative than a random pick.
+  // The category tile photos already have their own white padding baked in
+  // from the cleanup pipeline (wsrv.nl's fit=contain, or remove.bg's white
+  // composite) — stacking the tile's own padding on top of that made the
+  // product look small and "zoomed out" inside its square. wsrv.nl (same
+  // free proxy already used for the cleanup step) can auto-trim a uniform
+  // white border and then fill the square tightly — used only for this
+  // small thumbnail context, never for the stored image itself or the
+  // product page, where showing the photo uncropped still matters more.
+  function tileImageSrc(url: string): string {
+    const params = new URLSearchParams({
+      url,
+      trim: "10",
+      w: "500",
+      h: "500",
+      fit: "cover",
+      a: "attention",
+      output: "jpg",
+      q: "85",
+    });
+    return `https://wsrv.nl/?${params.toString()}`;
+  }
+
   function representativeImage(groupItems: string[]): string | null {
     const candidates = products.filter((p) => groupItems.includes(p.category) && p.image);
     if (candidates.length === 0) return null;
@@ -218,9 +240,9 @@ export default async function HomePage() {
                           />
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
-                            src={image}
+                            src={tileImageSrc(image)}
                             alt=""
-                            className="relative w-full h-full object-contain p-8 sm:p-10"
+                            className="relative w-full h-full object-cover"
                           />
                         </>
                       ) : (

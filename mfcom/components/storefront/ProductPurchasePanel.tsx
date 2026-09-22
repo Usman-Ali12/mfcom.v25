@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import ProductImage from "@/components/storefront/ProductImage";
 import { useRouter } from "next/navigation";
@@ -10,7 +11,15 @@ import { formatPrice, discountPercent, productWhatsAppLink } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
 
-export default function ProductPurchasePanel({ product, whatsappNumber }: { product: Product; whatsappNumber: string }) {
+export default function ProductPurchasePanel({
+  product,
+  whatsappNumber,
+  variants,
+}: {
+  product: Product;
+  whatsappNumber: string;
+  variants: Product[];
+}) {
   const [activeImage, setActiveImage] = useState(0);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
@@ -105,6 +114,36 @@ export default function ProductPurchasePanel({ product, whatsappNumber }: { prod
           <h1 className="font-display text-2xl sm:text-3xl font-semibold mb-3 leading-tight dark:text-paper">
             {product.name}
           </h1>
+
+          {/* Color/style variants — each swatch is a real, separate product
+              (own price/stock/photos), not a fake in-place switch, so
+              stock and price shown always match what a customer actually
+              gets. Only renders when this product is genuinely linked to
+              others; most products have none. */}
+          {variants.length > 1 && (
+            <div className="mb-5">
+              <p className="text-xs text-steel mb-2">
+                {product.variantLabel ? `Color: ${product.variantLabel}` : "Other options"}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {variants.map((v) => (
+                  <Link
+                    key={v.id}
+                    href={`/product/${v.slug}`}
+                    className={`flex items-center gap-2 h-10 pl-1.5 pr-3 border chamfer-sm text-sm transition-colors ${
+                      v.id === product.id
+                        ? "border-red bg-red/5 text-red"
+                        : "border-line dark:border-white/15 hover:border-void dark:hover:border-white/40 dark:text-paper/85"
+                    }`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={v.image} alt="" className="w-7 h-7 object-cover chamfer-sm bg-paper" />
+                    {v.variantLabel || v.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
 
           {product.reviewCount > 0 && (
             <div className="flex items-center gap-3 mb-6">

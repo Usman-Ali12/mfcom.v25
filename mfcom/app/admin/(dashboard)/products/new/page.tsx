@@ -3,15 +3,17 @@ import { createProductAction } from "../actions";
 import { listCategories } from "@/lib/categories-store";
 import { listBrands } from "@/lib/brands-store";
 import { listMedia } from "@/lib/media-store";
+import { listProducts } from "@/lib/admin-store";
 
 export const metadata = { title: "New Product" };
 export const dynamic = "force-dynamic";
 
 export default async function NewProductPage() {
-  const [categoryNames, brandNames, mediaItems] = await Promise.all([
+  const [categoryNames, brandNames, mediaItems, allProducts] = await Promise.all([
     listCategories().then((c) => c.map((x) => x.name)),
     listBrands().then((b) => b.map((x) => x.name)),
     listMedia(),
+    listProducts().then((ps) => ps.map((p) => ({ id: p.id, name: p.name, image: p.image, variantGroupId: p.variantGroupId }))),
   ]);
   return (
     <div>
@@ -23,6 +25,7 @@ export default async function NewProductPage() {
         categoryNames={categoryNames}
         brandNames={brandNames}
         mediaItems={mediaItems}
+        allProducts={allProducts}
       />
     </div>
   );

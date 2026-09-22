@@ -37,6 +37,8 @@ type ProductRow = {
   warranty: string | null;
   badge: string | null;
   condition: Product["condition"];
+  variant_group_id: string | null;
+  variant_label: string | null;
 };
 
 function rowToProduct(row: ProductRow): Product {
@@ -62,10 +64,12 @@ function rowToProduct(row: ProductRow): Product {
     warranty: row.warranty ?? "",
     badge: (row.badge as Product["badge"]) ?? undefined,
     condition: (row.condition as Product["condition"]) ?? "new",
+    variantGroupId: row.variant_group_id ?? undefined,
+    variantLabel: row.variant_label ?? undefined,
   };
 }
 
-function productToRow(input: Partial<Product>) {
+function productToRow(input: Partial<Omit<Product, "variantGroupId">> & { variantGroupId?: string | null }) {
   const row: Record<string, unknown> = {};
   if (input.slug !== undefined) row.slug = input.slug;
   if (input.sku !== undefined) row.sku = input.sku;
@@ -87,6 +91,8 @@ function productToRow(input: Partial<Product>) {
   if (input.warranty !== undefined) row.warranty = input.warranty;
   if (input.badge !== undefined) row.badge = input.badge ?? null;
   if (input.condition !== undefined) row.condition = input.condition;
+  if (input.variantGroupId !== undefined) row.variant_group_id = input.variantGroupId ?? null;
+  if (input.variantLabel !== undefined) row.variant_label = input.variantLabel ?? null;
   return row;
 }
 
@@ -138,7 +144,10 @@ export async function createProduct(input: Omit<Product, "id">): Promise<Product
   return rowToProduct(data as ProductRow);
 }
 
-export async function updateProduct(id: string, input: Partial<Product>): Promise<Product | undefined> {
+export async function updateProduct(
+  id: string,
+  input: Partial<Omit<Product, "variantGroupId">> & { variantGroupId?: string | null }
+): Promise<Product | undefined> {
   const supabase = createServerSupabaseClient();
   const row: Record<string, unknown> = productToRow(input);
 
@@ -181,6 +190,13 @@ export async function checkConditionColumnExists(): Promise<boolean> {
   // signature — an unrelated hiccup here shouldn't falsely tell the admin
   // their schema is out of date.
   return missingColumnFromError(error.message) !== "condition";
+}
+
+export async function getProductVariants(variantGroupId: string): Promise<Product[]> {
+  const supabase = createServerSupabaseClient();
+  const { data, error } = await supabase.from("products").select("*").eq("variant_group_id", variantGroupId);
+  if (error) throw new Error(`getProductVariants: ${error.message}`);
+  return (data as ProductRow[]).map(rowToProduct);
 }
 
 export function slugify(name: string): string {
