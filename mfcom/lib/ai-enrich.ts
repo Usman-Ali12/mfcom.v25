@@ -58,13 +58,16 @@ export async function enrichProductDetails(input: EnrichInput): Promise<Enriched
     .join("\n");
 
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ parts: [{ text: `${PROMPT_INSTRUCTIONS}\n\n${userContent}` }] }],
-        generationConfig: { responseMimeType: "application/json", temperature: 0.4 },
+        // Gemini 3.x models ignore custom temperature/top_p/top_k and are
+        // tuned for their defaults, so it's left out rather than set to a
+        // value that no longer does anything.
+        generationConfig: { responseMimeType: "application/json" },
       }),
     }
   );
@@ -75,7 +78,11 @@ export async function enrichProductDetails(input: EnrichInput): Promise<Enriched
   }
 
   const data = await res.json();
-  const text: string | undefined = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  // Not just parts[0] — Gemini 3.x "thinking" models can prepend a
+  // reasoning part before the actual answer part, so this takes the first
+  // part that actually has text rather than assuming it's always first.
+  const parts: { text?: string }[] = data?.candidates?.[0]?.content?.parts || [];
+  const text = parts.find((p) => p.text)?.text;
   if (!text) throw new Error("AI auto-fill returned nothing usable — try again.");
 
   let parsed: unknown;
