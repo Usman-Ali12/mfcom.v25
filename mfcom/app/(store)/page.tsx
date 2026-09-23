@@ -81,19 +81,23 @@ export default async function HomePage() {
   // The category tile photos already have their own white padding baked in
   // from the cleanup pipeline (wsrv.nl's fit=contain, or remove.bg's white
   // composite) — stacking the tile's own padding on top of that made the
-  // product look small and "zoomed out" inside its square. wsrv.nl (same
-  // free proxy already used for the cleanup step) can auto-trim a uniform
-  // white border and then fill the square tightly — used only for this
-  // small thumbnail context, never for the stored image itself or the
-  // product page, where showing the photo uncropped still matters more.
+  // product look small and "zoomed out" inside its square, so this trims
+  // the excess white border first. fit=contain (not cover) on purpose —
+  // cover crops to fill the square exactly, which turned out too tight/
+  // zoomed on some photos; contain scales the trimmed photo to fit
+  // without ever cropping into the product itself, then pads any leftover
+  // space white to match the card. Applies identically to every category
+  // tile (there's one shared helper, not per-tile tuning) so the whole
+  // row looks consistent regardless of which product happens to represent
+  // each group.
   function tileImageSrc(url: string): string {
     const params = new URLSearchParams({
       url,
-      trim: "10",
+      trim: "8",
       w: "500",
       h: "500",
-      fit: "cover",
-      a: "attention",
+      fit: "contain",
+      bg: "white",
       output: "jpg",
       q: "85",
     });
