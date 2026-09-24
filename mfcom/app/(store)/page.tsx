@@ -94,12 +94,14 @@ export default async function HomePage() {
     const params = new URLSearchParams({
       url,
       trim: "8",
-      w: "500",
-      h: "500",
+      // 800 rather than 500 — a 500px source looks visibly soft on a
+      // retina/high-DPI phone screen even at a small CSS display size.
+      w: "800",
+      h: "800",
       fit: "contain",
       bg: "white",
       output: "jpg",
-      q: "85",
+      q: "92",
     });
     return `https://wsrv.nl/?${params.toString()}`;
   }
@@ -169,10 +171,14 @@ export default async function HomePage() {
           {/* One dominant hero shot with a single supporting photo behind
               it for depth — not a pile of overlapping fragments. The price
               card below points at the actual hero image, not an unrelated
-              product. */}
+              product. Supporting photo is hidden below sm: at narrow
+              mobile widths two overlapping rotated images plus a price
+              card in a fixed-height box was tight enough to risk real
+              overlap — one clean hero shot reads better there than a
+              cramped collage. */}
           <div className="lg:col-span-7 relative h-[320px] sm:h-[400px] lg:h-[460px]">
             {supportingProduct && (
-              <div className="absolute right-[4%] top-[6%] w-[52%] sm:w-[46%] aspect-square rotate-[4deg] chamfer-lg overflow-hidden bg-white shadow-xl ring-1 ring-white/10 z-0">
+              <div className="hidden sm:block absolute right-[4%] top-[6%] w-[46%] aspect-square rotate-[4deg] chamfer-lg overflow-hidden bg-white shadow-xl ring-1 ring-white/10 z-0">
                 <ProductImage
                   src={supportingProduct.image}
                   alt={supportingProduct.name}
@@ -182,7 +188,7 @@ export default async function HomePage() {
                 />
               </div>
             )}
-            <div className="absolute left-0 top-[8%] w-[62%] sm:w-[58%] aspect-square rotate-[-3deg] chamfer-lg overflow-hidden bg-white shadow-2xl ring-1 ring-white/10 z-10">
+            <div className="absolute left-0 top-0 sm:top-[8%] w-[68%] sm:w-[58%] aspect-square rotate-[-3deg] chamfer-lg overflow-hidden bg-white shadow-2xl ring-1 ring-white/10 z-10">
               <ProductImage
                 src={heroProduct.image}
                 alt={heroProduct.name}
@@ -192,8 +198,12 @@ export default async function HomePage() {
                 className="object-contain p-6"
               />
             </div>
-            <div className="absolute -bottom-2 left-4 sm:left-10 bg-white text-void px-5 py-4 chamfer-sm shadow-2xl max-w-[260px] z-20">
-              <p className="mono-label text-[10px] text-steel mb-1">{heroProduct.brand}</p>
+            {/* Not text-steel — this card is always white/dark-text
+                regardless of site theme, but text-steel goes light-gray
+                in dark mode (tuned for dark backgrounds), which would be
+                unreadable here. Same class of bug as the category tiles. */}
+            <div className="absolute -bottom-2 left-4 sm:left-10 bg-white text-void px-5 py-4 chamfer-sm shadow-2xl max-w-[240px] sm:max-w-[260px] z-20">
+              <p className="mono-label text-[10px] text-black/40 mb-1">{heroProduct.brand}</p>
               <p className="text-sm font-medium mb-2 leading-snug">{heroProduct.name}</p>
               <p className="font-mono text-lg font-semibold text-red">
                 Rs. {heroProduct.price.toLocaleString()}
@@ -231,7 +241,12 @@ export default async function HomePage() {
                     href={firstInGroup ? `/category/${firstInGroup.slug}` : "/shop"}
                     className="group block bg-white dark:bg-graphite border border-line dark:border-white/10 chamfer overflow-hidden hover:border-void dark:hover:border-white/30 hover:shadow-lg transition-all"
                   >
-                    <div className="relative aspect-square bg-paper dark:bg-void/40 overflow-hidden">
+                    {/* Always white, not theme-aware — the photo itself
+                        always has a white canvas baked in from the cleanup
+                        pipeline (wsrv.nl's bg=white), so a dark container
+                        behind it in dark mode would show a worse seam than
+                        before, not fix one. */}
+                    <div className="relative aspect-square bg-white overflow-hidden">
                       {image ? (
                         <>
                           {/* Ambient glow, not a scaling photo — the photo
@@ -251,7 +266,12 @@ export default async function HomePage() {
                         </>
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <span className="mono-label text-[10px] text-steel">{group.items.length} lines</span>
+                          {/* Not text-steel here — that token goes light-gray
+                              in dark mode for readability on dark
+                              backgrounds, but this tile is always white
+                              (see comment above), so it needs a color that
+                              stays readable-on-white regardless of theme. */}
+                          <span className="mono-label text-[10px] text-black/40">{group.items.length} lines</span>
                         </div>
                       )}
                     </div>

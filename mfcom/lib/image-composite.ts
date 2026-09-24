@@ -7,7 +7,7 @@
 // This runs in the browser rather than adding an image-processing
 // dependency (sharp etc.) server-side — no new native dependency, and the
 // admin sees the result immediately before it uploads.
-export async function padCutoutOntoWhiteSquare(pngBlob: Blob, size = 1000): Promise<Blob> {
+export async function padCutoutOntoWhiteSquare(pngBlob: Blob, size = 1400): Promise<Blob> {
   const bitmap = await createImageBitmap(pngBlob);
 
   const canvas = document.createElement("canvas");
@@ -32,6 +32,6 @@ export async function padCutoutOntoWhiteSquare(pngBlob: Blob, size = 1000): Prom
   ctx.drawImage(bitmap, x, y, drawWidth, drawHeight);
 
   return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Failed to encode image"))), "image/jpeg", 0.92);
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Failed to encode image"))), "image/jpeg", 0.95);
   });
 }

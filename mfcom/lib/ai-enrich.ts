@@ -57,24 +57,38 @@ export async function enrichProductDetails(input: EnrichInput): Promise<Enriched
     .filter(Boolean)
     .join("\n");
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: `${PROMPT_INSTRUCTIONS}\n\n${userContent}` }] }],
-        // Gemini 3.x models ignore custom temperature/top_p/top_k and are
-        // tuned for their defaults, so it's left out rather than set to a
-        // value that no longer does anything.
-        generationConfig: { responseMimeType: "application/json" },
-      }),
-    }
-  );
+  const requestBody = JSON.stringify({
+    contents: [{ parts: [{ text: `${PROMPT_INSTRUCTIONS}\n\n${userContent}` }] }],
+    // Gemini 3.x models ignore custom temperature/top_p/top_k and are
+    // tuned for their defaults, so it's left out rather than set to a
+    // value that no longer does anything.
+    generationConfig: { responseMimeType: "application/json" },
+  });
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
 
-  if (!res.ok) {
-    const body = await res.json().catch(() => null);
-    throw new Error(body?.error?.message || `AI auto-fill failed (${res.status})`);
+  // "Model is currently experiencing high demand" (503) is Google's
+  // servers being temporarily overloaded, not a real failure — genuinely
+  // common on the free tier since it shares capacity. A couple of quick
+  // retries with backoff clears this most of the time without the admin
+  // needing to manually click the button again.
+  let res: Response | null = null;
+  let lastBody: unknown = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: requestBody });
+    if (res.ok) break;
+    lastBody = await res.json().catch(() => null);
+    const isOverloaded = res.status === 503 || res.status === 429;
+    if (!isOverloaded || attempt === 2) break;
+    await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+  }
+
+  if (!res || !res.ok) {
+    const status = res?.status;
+    if (status === 503 || status === 429) {
+      throw new Error("Gemini is busy right now (free-tier capacity) — this usually clears in a minute or two. Try again shortly.");
+    }
+    const message = (lastBody as { error?: { message?: string } })?.error?.message;
+    throw new Error(message || `AI auto-fill failed (${status ?? "no response"})`);
   }
 
   const data = await res.json();

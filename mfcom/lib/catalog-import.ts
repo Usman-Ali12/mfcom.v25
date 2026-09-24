@@ -265,13 +265,13 @@ async function removeBgWhite(imgFile: File): Promise<File | null> {
 function wsrvEnhanceUrl(publicUrl: string): string {
   const params = new URLSearchParams({
     url: publicUrl,
-    w: "1000",
-    h: "1000",
+    w: "1400",
+    h: "1400",
     fit: "contain",
     bg: "white",
     a: "attention", // smart-crop toward the actual subject when padding
     output: "jpg",
-    q: "90",
+    q: "94",
     sharp: "1",
   });
   return `https://wsrv.nl/?${params.toString()}`;
