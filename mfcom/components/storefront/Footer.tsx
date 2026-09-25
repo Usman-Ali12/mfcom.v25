@@ -34,7 +34,7 @@ export default function Footer({
               <div className="flex items-center gap-2.5">
                 <Phone size={15} className="text-red shrink-0" />
                 <span>
-                  {settings.whatsappDisplay} · {settings.whatsappSecondaryDisplay}
+                  {settings.whatsappDisplay}
                 </span>
               </div>
               <div className="flex items-center gap-2.5">
