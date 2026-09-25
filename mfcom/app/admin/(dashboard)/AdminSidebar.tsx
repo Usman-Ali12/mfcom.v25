@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Menu,
   X,
@@ -96,25 +97,41 @@ export default function AdminSidebar({
         </button>
       </div>
 
-      {open && (
-        <div className="sm:hidden fixed inset-0 z-50 flex">
-          <div className="w-72 max-w-[80vw] bg-void text-paper flex flex-col">
-            <div className="h-14 flex items-center justify-between px-4 border-b border-white/10">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo-on-dark.png" alt="MF COM" className="h-6 w-auto" />
-              <button onClick={() => setOpen(false)} aria-label="Close menu" className="p-2 -mr-2">
-                <X size={20} />
-              </button>
-            </div>
-            {navList}
+      {/* Instant show/hide before — the one place on the whole site still
+          missing the open/close transition every other popover and drawer
+          already got. Slide-in from the left (it's a sidebar, not a
+          centered panel), backdrop fades in behind it. */}
+      <AnimatePresence>
+        {open && (
+          <div className="sm:hidden fixed inset-0 z-50 flex">
+            <motion.div
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              className="w-72 max-w-[80vw] bg-void text-paper flex flex-col"
+            >
+              <div className="h-14 flex items-center justify-between px-4 border-b border-white/10">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo-on-dark.png" alt="MF COM" className="h-6 w-auto" />
+                <button onClick={() => setOpen(false)} aria-label="Close menu" className="p-2 -mr-2">
+                  <X size={20} />
+                </button>
+              </div>
+              {navList}
+            </motion.div>
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.22 }}
+              aria-label="Close menu"
+              onClick={() => setOpen(false)}
+              className="flex-1 bg-black/40"
+            />
           </div>
-          <button
-            aria-label="Close menu"
-            onClick={() => setOpen(false)}
-            className="flex-1 bg-black/40"
-          />
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       {/* Desktop sidebar — fixed, always visible at sm+ */}
       <aside className="hidden sm:flex w-60 shrink-0 bg-void text-paper flex-col">
