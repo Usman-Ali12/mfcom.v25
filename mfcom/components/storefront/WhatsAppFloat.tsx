@@ -9,14 +9,13 @@ export default function WhatsAppFloat({ settings }: { settings: SiteSettings }) 
   const [open, setOpen] = useState(false);
 
   const contacts = [
-    { name: settings.whatsappPrimaryName, number: settings.whatsappNumber, display: settings.whatsappDisplay },
-    {
-      name: settings.whatsappSecondaryName,
-      number: settings.whatsappSecondaryNumber,
-      display: settings.whatsappSecondaryDisplay,
-    },
-  ];
-
+  { name: settings.whatsappPrimaryName, number: settings.whatsappNumber, display: settings.whatsappDisplay },
+  {
+    name: settings.whatsappSecondaryName,
+    number: settings.whatsappSecondaryNumber,
+    display: settings.whatsappSecondaryDisplay,
+  },
+].filter((c) => c.name && c.number);
   return (
     <div className="fixed bottom-20 right-5 md:bottom-5 z-40 flex flex-col items-end gap-3">
       <AnimatePresence>
